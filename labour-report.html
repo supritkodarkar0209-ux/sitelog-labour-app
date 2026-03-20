@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SiteLog — Daily Labour Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1117; --surface: #181c27; --card: #1e2336; --border: #2a3050;
+  --accent: #f5a623; --accent2: #3b82f6; --green: #22c55e; --red: #ef4444;
+  --text: #e8eaf2; --muted: #7c85a8; --label: #a8b0cc; --purple: #8b5cf6;
+}
+body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
+
+/* HEADER */
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.logo { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 1px; color: var(--accent); }
+.logo span { color: var(--text); }
+
+/* TOP TABS */
+.tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
+.tab { flex: 1; min-width: 68px; padding: 12px 4px; text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; text-transform: uppercase; white-space: nowrap; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.page { display: none; padding: 20px; }
+.page.active { display: block; }
+
+.section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 22px 0 10px; }
+.section-title:first-child { margin-top: 2px; }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+
+.field { margin-bottom: 12px; }
+.field:last-child { margin-bottom: 0; }
+label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--label); margin-bottom: 6px; }
+
+input[type="text"], input[type="date"], input[type="number"], select {
+  width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 13px 14px; font-family: 'Barlow', sans-serif; font-size: 16px; color: var(--text);
+  outline: none; transition: border-color 0.2s; -webkit-appearance: none; appearance: none;
+}
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237c85a8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 38px; }
+input:focus, select:focus { border-color: var(--accent); }
+input.error { border-color: var(--red); }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.4); }
+
+.error-msg { color: var(--red); font-size: 12px; margin-top: 4px; display: none; }
+.error-msg.show { display: block; }
+
+/* WORKER GRID */
+.worker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* WORKER CATEGORY CARD */
+.worker-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 16px; margin-bottom: 12px; position: relative;
+}
+.worker-card-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.worker-card-title {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700;
+  color: var(--text); display: flex; align-items: center; gap: 8px;
+}
+.worker-icon {
+  width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center;
+  justify-content: center; font-size: 14px; flex-shrink: 0;
+}
+.worker-subtotal {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700;
+  color: var(--accent);
+}
+.remove-worker-btn {
+  background: transparent; border: 1px solid var(--red); color: var(--red);
+  border-radius: 6px; padding: 3px 8px; font-size: 11px; cursor: pointer;
+  font-family: 'Barlow', sans-serif; font-weight: 600; transition: all 0.15s;
+}
+.remove-worker-btn:hover { background: var(--red); color: #fff; }
+
+/* ADD WORKER BTN */
+.add-worker-btn {
+  width: 100%; padding: 13px; background: transparent;
+  border: 1.5px dashed var(--border); border-radius: 12px;
+  color: var(--muted); font-family: 'Barlow', sans-serif; font-size: 14px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.add-worker-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(245,166,35,0.05); }
+
+/* PRESET CHIPS */
+.preset-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.chip {
+  padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  cursor: pointer; border: 1px solid var(--border); background: var(--surface);
+  color: var(--label); transition: all 0.15s; white-space: nowrap;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.used { opacity: 0.3; pointer-events: none; }
+
+/* TOTALS */
+.totals-card { background: linear-gradient(135deg, #1e2a45, #1e2336); border: 1.5px solid var(--accent2); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+.total-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.total-row:last-child { border-bottom: none; }
+.total-label { color: var(--label); }
+.total-value { font-weight: 600; color: var(--text); }
+.grand-row { background: var(--accent); border-radius: 10px; padding: 14px 16px; margin-top: 14px; display: flex; justify-content: space-between; align-items: center; }
+.grand-label { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #1a1000; }
+.grand-value { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; color: #1a1000; }
+#live-totals-list { margin-bottom: 0; }
+
+/* BUTTONS */
+.btn { width: 100%; padding: 15px; border: none; border-radius: 12px; font-family: 'Barlow', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; transition: transform 0.15s; margin-bottom: 10px; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: #1a1000; }
+.btn-secondary { background: var(--card); color: var(--text); border: 1.5px solid var(--border); }
+.btn-sm { width: auto; padding: 7px 12px; font-size: 12px; border-radius: 8px; margin-bottom: 0; border: none; cursor: pointer; font-family: 'Barlow', sans-serif; font-weight: 600; transition: transform 0.15s; }
+.btn-sm:active { transform: scale(0.97); }
+.btn-edit { background: var(--accent2); color: #fff; }
+.btn-delete { background: transparent; color: var(--red); border: 1px solid var(--red) !important; }
+.btn-share { background: #25D366; color: #fff; }
+.btn-pdf { background: var(--surface); color: var(--text); border: 1px solid var(--border) !important; }
+.btn-month-pdf { background: var(--accent); color: #1a1000; border: none; width: 100%; padding: 14px; font-size: 15px; font-weight: 700; border-radius: 12px; cursor: pointer; font-family: 'Barlow', sans-serif; }
+.btn-month-pdf:active { transform: scale(0.98); }
+
+/* RECORDS */
+.record-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+.record-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.record-name { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); }
+.record-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.record-badge { background: var(--accent); color: #1a1000; font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 8px; font-family: 'Barlow Condensed', sans-serif; white-space: nowrap; }
+.record-workers { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.worker-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
+.worker-pill strong { color: var(--text); }
+.record-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+.stat-value { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; color: var(--accent); }
+.stat-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* MONTHLY */
+.month-filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.month-summary-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.m-stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.m-stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+.m-stat-value { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; color: var(--accent); }
+.month-table-wrap { overflow-x: auto; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 12px; }
+.month-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.month-table thead tr { background: #151929; }
+.month-table th { padding: 10px 9px; text-align: left; font-size: 9.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--label); border-bottom: 1.5px solid var(--border); white-space: nowrap; }
+.month-table th.r, .month-table td.r { text-align: right; }
+.month-table td { padding: 9px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+.month-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+.serial-no { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; color: var(--muted); text-align: center !important; }
+.amount-cell { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; color: var(--accent); }
+.month-totals-row td { background: #1a2040 !important; font-weight: 700; border-top: 2px solid var(--accent); }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--surface); border-radius: 20px 20px 0 0; padding: 24px 20px; width: 100%; max-width: 500px; border-top: 1px solid var(--border); max-height: 92vh; overflow-y: auto; }
+.modal-title { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 18px; }
+
+/* CUSTOM WORKER MODAL */
+.custom-modal { background: var(--surface); border-radius: 20px 20px 0 0; padding: 24px 20px; width: 100%; max-width: 500px; border-top: 1px solid var(--border); }
+.custom-modal .field { margin-bottom: 16px; }
+
+.empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 15px; }
+
+.toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--green); color: #fff; padding: 12px 24px; border-radius: 30px; font-weight: 600; font-size: 14px; z-index: 999; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+.toast.show { opacity: 1; }
+
+/* WORKER ICON COLORS */
+.icon-mason    { background: rgba(59,130,246,0.18); }
+.icon-helper   { background: rgba(34,197,94,0.18); }
+.icon-supervisor { background: rgba(245,166,35,0.18); }
+.icon-carpenter { background: rgba(139,92,246,0.18); }
+.icon-custom   { background: rgba(245,166,35,0.12); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">SITE<span>LOG</span></div>
+  <div style="font-size:12px;color:var(--muted)">Labour Report</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage('form',this)">📋 New</div>
+  <div class="tab" onclick="showPage('records',this)">🗂 Records</div>
+  <div class="tab" onclick="showPage('monthly',this)">📅 Monthly</div>
+  <div class="tab" onclick="showPage('dashboard',this)">📊 Summary</div>
+</div>
+
+<!-- ═══ FORM PAGE ═══ -->
+<div class="page active" id="page-form">
+
+  <p class="section-title">Site Details</p>
+  <div class="card">
+    <div class="field">
+      <label>Contractor Name</label>
+      <input type="text" id="contractor" placeholder="Enter contractor name">
+      <div class="error-msg" id="err-contractor">Name is required</div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Date</label>
+      <input type="date" id="date">
+    </div>
+  </div>
+
+  <p class="section-title">Worker Categories</p>
+
+  <!-- Quick-add preset chips -->
+  <div class="preset-chips" id="preset-chips">
+    <div class="chip" data-key="mason"      data-icon="🧱" data-label="Mason"      onclick="addPreset(this)">+ Mason</div>
+    <div class="chip" data-key="helper"     data-icon="👷" data-label="Helper"     onclick="addPreset(this)">+ Helper</div>
+    <div class="chip" data-key="supervisor" data-icon="📋" data-label="Supervisor" onclick="addPreset(this)">+ Supervisor</div>
+    <div class="chip" data-key="carpenter"  data-icon="🪚" data-label="Carpenter"  onclick="addPreset(this)">+ Carpenter</div>
+    <div class="chip" data-key="electrician" data-icon="⚡" data-label="Electrician" onclick="addPreset(this)">+ Electrician</div>
+    <div class="chip" data-key="plumber"    data-icon="🔧" data-label="Plumber"    onclick="addPreset(this)">+ Plumber</div>
+    <div class="chip" data-key="painter"    data-icon="🖌️" data-label="Painter"    onclick="addPreset(this)">+ Painter</div>
+    <div class="chip" data-key="welder"     data-icon="🔩" data-label="Welder"     onclick="addPreset(this)">+ Welder</div>
+  </div>
+
+  <!-- Worker cards container -->
+  <div id="worker-cards"></div>
+
+  <!-- Add custom -->
+  <button class="add-worker-btn" onclick="openCustomModal()">
+    <span style="font-size:18px">＋</span> Add Custom Category
+  </button>
+
+  <!-- Live Totals -->
+  <p class="section-title">Live Totals</p>
+  <div class="totals-card">
+    <div id="live-totals-list"></div>
+    <div class="grand-row">
+      <span class="grand-label">Grand Total</span>
+      <span class="grand-value" id="grand-total">₹0</span>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveReport()">💾 Save Report</button>
+  <button class="btn btn-secondary" onclick="resetForm()">↺ Reset All</button>
+</div>
+
+<!-- ═══ RECORDS PAGE ═══ -->
+<div class="page" id="page-records">
+  <p class="section-title">All Saved Reports</p>
+  <div id="records-list"></div>
+</div>
+
+<!-- ═══ MONTHLY PAGE ═══ -->
+<div class="page" id="page-monthly">
+  <p class="section-title">Select Period</p>
+  <div class="month-filter-row">
+    <select id="filter-month" onchange="renderMonthly()"></select>
+    <select id="filter-contractor" onchange="renderMonthly()">
+      <option value="">All Contractors</option>
+    </select>
+  </div>
+  <div id="month-summary-cards" class="month-summary-cards"></div>
+  <div class="month-table-wrap" id="month-table-wrap">
+    <table class="month-table">
+      <thead><tr id="month-thead-row"></tr></thead>
+      <tbody id="month-tbody"></tbody>
+    </table>
+  </div>
+  <div id="month-empty" class="empty-state" style="display:none">
+    <div class="empty-icon">📅</div>
+    <div class="empty-text">No records for selected period.</div>
+  </div>
+  <button class="btn-month-pdf" id="month-pdf-btn" onclick="exportMonthlyPDF()" style="display:none">
+    📄 Export Monthly PDF Report
+  </button>
+</div>
+
+<!-- ═══ DASHBOARD PAGE ═══ -->
+<div class="page" id="page-dashboard">
+  <p class="section-title">Overall Summary</p>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Reports</div>
+      <div class="stat-value" id="stat-count">0</div>
+      <div class="stat-sub">entries saved</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Spent</div>
+      <div class="stat-value" id="stat-total">₹0</div>
+      <div class="stat-sub">all time</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Workers</div>
+      <div class="stat-value" id="stat-workers">0</div>
+      <div class="stat-sub">man-days</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Categories Used</div>
+      <div class="stat-value" id="stat-cats">0</div>
+      <div class="stat-sub">worker types</div>
+    </div>
+  </div>
+  <p class="section-title">By Contractor</p>
+  <div id="contractor-summary"></div>
+  <p class="section-title">By Worker Type</p>
+  <div id="worker-type-summary"></div>
+</div>
+
+<!-- ═══ EDIT MODAL ═══ -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ Edit Report</div>
+    <div class="field"><label>Contractor Name</label><input type="text" id="edit-contractor"></div>
+    <div class="field"><label>Date</label><input type="date" id="edit-date"></div>
+    <p style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:16px 0 10px">Worker Categories</p>
+    <div id="edit-worker-cards"></div>
+    <div class="grand-row" style="margin:14px 0 16px">
+      <span class="grand-label">Grand Total</span>
+      <span class="grand-value" id="edit-grand">₹0</span>
+    </div>
+    <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    <button class="btn btn-secondary" onclick="closeModal('edit-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══ CUSTOM CATEGORY MODAL ═══ -->
+<div class="modal-overlay" id="custom-modal">
+  <div class="modal custom-modal">
+    <div class="modal-title">➕ Add Custom Category</div>
+    <div class="field">
+      <label>Category Name</label>
+      <input type="text" id="custom-name" placeholder="e.g. Painter, Welder, Driver…">
+      <div class="error-msg" id="err-custom">Please enter a name</div>
+    </div>
+    <div class="field">
+      <label>Icon (emoji)</label>
+      <input type="text" id="custom-icon" placeholder="e.g. 🖌️" maxlength="4" style="font-size:22px">
+    </div>
+    <button class="btn btn-primary" onclick="confirmCustom()">Add Category</button>
+    <button class="btn btn-secondary" onclick="closeModal('custom-modal')">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────
+let reports = JSON.parse(localStorage.getItem('sitelog_v2') || '[]');
+let editIndex = -1;
+
+// Active worker categories on the form: [{key, label, icon, count, rate}]
+let formWorkers = [];
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const PRESETS = {
+  mason:       { label: 'Mason',       icon: '🧱' },
+  helper:      { label: 'Helper',      icon: '👷' },
+  supervisor:  { label: 'Supervisor',  icon: '📋' },
+  carpenter:   { label: 'Carpenter',   icon: '🪚' },
+  electrician: { label: 'Electrician', icon: '⚡' },
+  plumber:     { label: 'Plumber',     icon: '🔧' },
+  painter:     { label: 'Painter',     icon: '🖌️' },
+  welder:      { label: 'Welder',      icon: '🔩' },
+};
+
+const ICON_COLORS = {
+  mason: 'icon-mason', helper: 'icon-helper',
+  supervisor: 'icon-supervisor', carpenter: 'icon-carpenter',
+};
+
+// ─────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────
+document.getElementById('date').value = today();
+// Default: Mason + Helper
+addWorker('mason', 'Mason', '🧱');
+addWorker('helper', 'Helper', '👷');
+
+// ─────────────────────────────────────────────────────
+// WORKER FORM MANAGEMENT
+// ─────────────────────────────────────────────────────
+function addWorker(key, label, icon) {
+  if (formWorkers.find(w => w.key === key)) return;
+  formWorkers.push({ key, label, icon, count: 0, rate: 0 });
+  renderWorkerCards();
+  updateChips();
+  calcTotals();
+}
+
+function addPreset(chipEl) {
+  const { key, label, icon } = chipEl.dataset;
+  addWorker(key, label, icon);
+}
+
+function removeWorker(key) {
+  formWorkers = formWorkers.filter(w => w.key !== key);
+  renderWorkerCards();
+  updateChips();
+  calcTotals();
+}
+
+function renderWorkerCards() {
+  const container = document.getElementById('worker-cards');
+  if (!formWorkers.length) {
+    container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:24px 0;font-size:14px">
+      Tap a category above to add workers ↑</div>`;
+    return;
+  }
+  container.innerHTML = formWorkers.map(w => `
+    <div class="worker-card" id="wcard-${w.key}">
+      <div class="worker-card-header">
+        <div class="worker-card-title">
+          <div class="worker-icon ${ICON_COLORS[w.key] || 'icon-custom'}">${w.icon}</div>
+          ${w.label}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="worker-subtotal" id="subtotal-${w.key}">₹0</div>
+          <button class="remove-worker-btn" onclick="removeWorker('${w.key}')">✕</button>
+        </div>
+      </div>
+      <div class="worker-grid">
+        <div class="field" style="margin-bottom:0">
+          <label>Count</label>
+          <input type="number" id="count-${w.key}" value="0" min="0"
+            oninput="onWorkerInput('${w.key}')">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Rate / Day (₹)</label>
+          <input type="number" id="rate-${w.key}" value="0" min="0"
+            oninput="onWorkerInput('${w.key}')">
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function onWorkerInput(key) {
+  const w = formWorkers.find(w => w.key === key);
+  if (!w) return;
+  w.count = Math.max(0, +document.getElementById('count-'+key).value || 0);
+  w.rate  = Math.max(0, +document.getElementById('rate-'+key).value || 0);
+  const sub = w.count * w.rate;
+  document.getElementById('subtotal-'+key).textContent = '₹' + sub.toLocaleString('en-IN');
+  calcTotals();
+}
+
+function calcTotals() {
+  let grand = 0;
+  let html = '';
+  formWorkers.forEach(w => {
+    const amt = w.count * w.rate;
+    grand += amt;
+    html += `<div class="total-row">
+      <span class="total-label">${w.icon} ${w.label}</span>
+      <span class="total-value">₹${amt.toLocaleString('en-IN')}</span>
+    </div>`;
+  });
+  document.getElementById('live-totals-list').innerHTML = html || `<div class="total-row"><span class="total-label" style="color:var(--muted)">No categories added yet</span></div>`;
+  document.getElementById('grand-total').textContent = '₹' + grand.toLocaleString('en-IN');
+}
+
+function updateChips() {
+  document.querySelectorAll('#preset-chips .chip').forEach(chip => {
+    const inUse = formWorkers.find(w => w.key === chip.dataset.key);
+    chip.classList.toggle('used', !!inUse);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// CUSTOM CATEGORY MODAL
+// ─────────────────────────────────────────────────────
+function openCustomModal() {
+  document.getElementById('custom-name').value = '';
+  document.getElementById('custom-icon').value = '';
+  document.getElementById('err-custom').classList.remove('show');
+  document.getElementById('custom-modal').classList.add('show');
+  setTimeout(() => document.getElementById('custom-name').focus(), 100);
+}
+
+function confirmCustom() {
+  const name = document.getElementById('custom-name').value.trim();
+  if (!name) { document.getElementById('err-custom').classList.add('show'); return; }
+  const icon = document.getElementById('custom-icon').value.trim() || '👤';
+  const key  = 'custom_' + Date.now();
+  closeModal('custom-modal');
+  addWorker(key, name, icon);
+}
+
+// ─────────────────────────────────────────────────────
+// SAVE REPORT
+// ─────────────────────────────────────────────────────
+function validate() {
+  const c = document.getElementById('contractor').value.trim();
+  document.getElementById('err-contractor').classList.toggle('show', !c);
+  document.getElementById('contractor').classList.toggle('error', !c);
+  return !!c;
+}
+
+function saveReport() {
+  if (!validate()) return;
+  if (!formWorkers.length) { showToast('⚠️ Add at least one worker category'); return; }
+  const workers = formWorkers.map(w => ({
+    key: w.key, label: w.label, icon: w.icon,
+    count: w.count, rate: w.rate, total: w.count * w.rate
+  }));
+  const grandTotal = workers.reduce((s, w) => s + w.total, 0);
+  reports.unshift({
+    id: Date.now(),
+    contractor: document.getElementById('contractor').value.trim(),
+    date: document.getElementById('date').value,
+    workers, grandTotal
+  });
+  save(); showToast('✅ Report saved!'); resetForm();
+}
+
+function resetForm() {
+  document.getElementById('contractor').value = '';
+  document.getElementById('date').value = today();
+  document.getElementById('err-contractor').classList.remove('show');
+  document.getElementById('contractor').classList.remove('error');
+  formWorkers = [];
+  addWorker('mason', 'Mason', '🧱');
+  addWorker('helper', 'Helper', '👷');
+}
+
+// ─────────────────────────────────────────────────────
+// NAV
+// ─────────────────────────────────────────────────────
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'records') renderRecords();
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'monthly') initMonthlyFilters();
+}
+
+// ─────────────────────────────────────────────────────
+// RECORDS
+// ─────────────────────────────────────────────────────
+function renderRecords() {
+  const el = document.getElementById('records-list');
+  if (!reports.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No reports yet.<br>Save your first daily report!</div></div>';
+    return;
+  }
+  el.innerHTML = reports.map((r, i) => {
+    const pills = r.workers.map(w =>
+      `<div class="worker-pill">${w.icon} <strong>${w.label}</strong>: ${w.count} × ₹${w.rate.toLocaleString('en-IN')} = ₹${w.total.toLocaleString('en-IN')}</div>`
+    ).join('');
+    return `<div class="record-card">
+      <div class="record-header">
+        <div>
+          <div class="record-name">${r.contractor}</div>
+          <div class="record-date">${formatDate(r.date)}</div>
+        </div>
+        <div class="record-badge">₹${r.grandTotal.toLocaleString('en-IN')}</div>
+      </div>
+      <div class="record-workers">${pills}</div>
+      <div class="record-actions">
+        <button class="btn-sm btn-edit"   onclick="editReport(${i})">✏️ Edit</button>
+        <button class="btn-sm btn-share"  onclick="shareWhatsApp(${i})">📲 WA</button>
+        <button class="btn-sm btn-pdf"    onclick="exportPDF(${i})">📄 PDF</button>
+        <button class="btn-sm btn-delete" onclick="deleteReport(${i})">🗑 Del</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────────
+// EDIT
+// ─────────────────────────────────────────────────────
+function editReport(i) {
+  editIndex = i;
+  const r = reports[i];
+  document.getElementById('edit-contractor').value = r.contractor;
+  document.getElementById('edit-date').value = r.date;
+  renderEditWorkerCards(r.workers);
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+function renderEditWorkerCards(workers) {
+  const container = document.getElementById('edit-worker-cards');
+  container.innerHTML = workers.map((w, wi) => `
+    <div class="worker-card" style="margin-bottom:12px">
+      <div class="worker-card-header">
+        <div class="worker-card-title">
+          <div class="worker-icon ${ICON_COLORS[w.key]||'icon-custom'}">${w.icon}</div>
+          ${w.label}
+        </div>
+        <div class="worker-subtotal" id="edit-subtotal-${wi}">₹${w.total.toLocaleString('en-IN')}</div>
+      </div>
+      <div class="worker-grid">
+        <div class="field" style="margin-bottom:0">
+          <label>Count</label>
+          <input type="number" id="edit-count-${wi}" value="${w.count}" min="0" oninput="editWorkerCalc()">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Rate / Day (₹)</label>
+          <input type="number" id="edit-rate-${wi}" value="${w.rate}" min="0" oninput="editWorkerCalc()">
+        </div>
+      </div>
+    </div>`).join('');
+  editWorkerCalc();
+}
+
+function editWorkerCalc() {
+  const r = reports[editIndex];
+  let grand = 0;
+  r.workers.forEach((w, wi) => {
+    const c = Math.max(0, +document.getElementById('edit-count-'+wi).value || 0);
+    const rt = Math.max(0, +document.getElementById('edit-rate-'+wi).value || 0);
+    const sub = c * rt;
+    grand += sub;
+    document.getElementById('edit-subtotal-'+wi).textContent = '₹' + sub.toLocaleString('en-IN');
+  });
+  document.getElementById('edit-grand').textContent = '₹' + grand.toLocaleString('en-IN');
+}
+
+function saveEdit() {
+  const r = reports[editIndex];
+  const workers = r.workers.map((w, wi) => {
+    const count = Math.max(0, +document.getElementById('edit-count-'+wi).value || 0);
+    const rate  = Math.max(0, +document.getElementById('edit-rate-'+wi).value || 0);
+    return { ...w, count, rate, total: count * rate };
+  });
+  reports[editIndex] = {
+    ...r,
+    contractor: document.getElementById('edit-contractor').value.trim(),
+    date: document.getElementById('edit-date').value,
+    workers,
+    grandTotal: workers.reduce((s,w) => s+w.total, 0)
+  };
+  save(); closeModal('edit-modal'); renderRecords(); showToast('✅ Report updated!');
+}
+
+function deleteReport(i) {
+  if (confirm('Delete this report?')) {
+    reports.splice(i, 1); save(); renderRecords(); showToast('🗑 Deleted');
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// MONTHLY
+// ─────────────────────────────────────────────────────
+function ym(d) { const [y,m] = d.split('-'); return y+'-'+m; }
+function monthLabel(ymStr) { const [y,m] = ymStr.split('-'); return MONTHS[+m-1]+' '+y; }
+
+function initMonthlyFilters() {
+  const months = [...new Set(reports.map(r => ym(r.date)))].sort().reverse();
+  const mSel = document.getElementById('filter-month');
+  const prev = mSel.value;
+  mSel.innerHTML = months.length
+    ? months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('')
+    : '<option value="">No data yet</option>';
+  if (months.includes(prev)) mSel.value = prev;
+
+  const contractors = [...new Set(reports.map(r => r.contractor))].sort();
+  const cSel = document.getElementById('filter-contractor');
+  const cPrev = cSel.value;
+  cSel.innerHTML = '<option value="">All Contractors</option>' +
+    contractors.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (cPrev) cSel.value = cPrev;
+
+  renderMonthly();
+}
+
+function renderMonthly() {
+  const selYM = document.getElementById('filter-month').value;
+  const selC  = document.getElementById('filter-contractor').value;
+
+  let rows = reports.filter(r => ym(r.date) === selYM);
+  if (selC) rows = rows.filter(r => r.contractor === selC);
+  rows.sort((a, b) => a.date.localeCompare(b.date));
+
+  const tbody  = document.getElementById('month-tbody');
+  const thead  = document.getElementById('month-thead-row');
+  const empty  = document.getElementById('month-empty');
+  const pdfBtn = document.getElementById('month-pdf-btn');
+  const wrap   = document.getElementById('month-table-wrap');
+  const cards  = document.getElementById('month-summary-cards');
+
+  if (!rows.length || !selYM) {
+    tbody.innerHTML = ''; thead.innerHTML = '';
+    empty.style.display = 'block'; pdfBtn.style.display = 'none';
+    wrap.style.display = 'none'; cards.innerHTML = ''; return;
+  }
+
+  empty.style.display = 'none'; pdfBtn.style.display = 'block'; wrap.style.display = 'block';
+
+  // Collect all unique worker types across filtered rows
+  const allKeys = [];
+  const keyMeta = {};
+  rows.forEach(r => r.workers.forEach(w => {
+    if (!keyMeta[w.key]) { keyMeta[w.key] = { label: w.label, icon: w.icon }; allKeys.push(w.key); }
+  }));
+
+  // Summary cards
+  const totalSpent  = rows.reduce((s, r) => s + r.grandTotal, 0);
+  const totalWorkers = rows.reduce((s, r) => s + r.workers.reduce((a, w) => a + w.count, 0), 0);
+  cards.innerHTML = `
+    <div class="m-stat"><div class="m-stat-label">Days Worked</div><div class="m-stat-value">${rows.length}</div></div>
+    <div class="m-stat"><div class="m-stat-label">Month Total</div><div class="m-stat-value">₹${totalSpent.toLocaleString('en-IN')}</div></div>
+    <div class="m-stat"><div class="m-stat-label">Worker Types</div><div class="m-stat-value">${allKeys.length}</div></div>
+    <div class="m-stat"><div class="m-stat-label">Total Man-days</div><div class="m-stat-value">${totalWorkers}</div></div>`;
+
+  // Build dynamic columns
+  thead.innerHTML = `
+    <th style="text-align:center;width:32px">Sr.</th>
+    <th>Date</th>
+    <th>Contractor</th>
+    ${allKeys.map(k => `<th class="r">${keyMeta[k].icon} ${keyMeta[k].label}</th>`).join('')}
+    <th class="r">Grand Total</th>`;
+
+  // Totals per key
+  const keyTotals = {};
+  allKeys.forEach(k => keyTotals[k] = 0);
+
+  tbody.innerHTML = rows.map((r, i) => {
+    const cells = allKeys.map(k => {
+      const w = r.workers.find(w => w.key === k);
+      const amt = w ? w.total : 0;
+      if (w) keyTotals[k] += amt;
+      return `<td class="r amount-cell">${w ? '₹'+amt.toLocaleString('en-IN') : '<span style="color:var(--border)">—</span>'}</td>`;
+    }).join('');
+    return `<tr>
+      <td class="serial-no">${i+1}</td>
+      <td style="white-space:nowrap">${formatDate(r.date)}</td>
+      <td style="font-weight:600">${r.contractor}</td>
+      ${cells}
+      <td class="r amount-cell">₹${r.grandTotal.toLocaleString('en-IN')}</td>
+    </tr>`;
+  }).join('') + `
+    <tr class="month-totals-row">
+      <td colspan="3" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--label)">
+        TOTAL (${rows.length} days)
+      </td>
+      ${allKeys.map(k => `<td class="r amount-cell">₹${keyTotals[k].toLocaleString('en-IN')}</td>`).join('')}
+      <td class="r amount-cell" style="font-size:15px">₹${totalSpent.toLocaleString('en-IN')}</td>
+    </tr>`;
+}
+
+// ─────────────────────────────────────────────────────
+// MONTHLY PDF
+// ─────────────────────────────────────────────────────
+function exportMonthlyPDF() {
+  const selYM = document.getElementById('filter-month').value;
+  const selC  = document.getElementById('filter-contractor').value;
+  let rows = reports.filter(r => ym(r.date) === selYM);
+  if (selC) rows = rows.filter(r => r.contractor === selC);
+  rows.sort((a, b) => a.date.localeCompare(b.date));
+  if (!rows.length) return;
+
+  const allKeys = [];
+  const keyMeta = {};
+  rows.forEach(r => r.workers.forEach(w => {
+    if (!keyMeta[w.key]) { keyMeta[w.key] = { label: w.label, icon: w.icon }; allKeys.push(w.key); }
+  }));
+
+  const totalSpent = rows.reduce((s, r) => s + r.grandTotal, 0);
+  const keyTotals  = {};
+  allKeys.forEach(k => keyTotals[k] = 0);
+
+  const tableRows = rows.map((r, i) => {
+    const cells = allKeys.map(k => {
+      const w = r.workers.find(w => w.key === k);
+      const amt = w ? w.total : 0;
+      if (w) keyTotals[k] += amt;
+      return `<td class="r">${w ? '₹'+amt.toLocaleString('en-IN') : '—'}</td>`;
+    }).join('');
+    return `<tr class="${i%2===1?'alt':''}">
+      <td class="c">${i+1}</td>
+      <td>${formatDate(r.date)}</td>
+      <td>${r.contractor}</td>
+      ${cells}
+      <td class="r bold">₹${r.grandTotal.toLocaleString('en-IN')}</td>
+    </tr>`;
+  }).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+<title>Monthly Report — ${monthLabel(selYM)}</title>
+<style>
+  @page { size: A4 landscape; margin: 14mm 12mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; }
+  .header { background: #1a1a2e; color: #fff; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-radius: 6px; }
+  .brand { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: #f5a623; }
+  .brand span { color: #fff; }
+  .report-title { font-size: 12px; color: #a8b0cc; margin-top: 2px; }
+  .meta-right { text-align: right; font-size: 10px; color: #a8b0cc; line-height: 1.6; }
+  .meta-right strong { color: #fff; font-size: 12px; }
+  .summary-strip { display: flex; gap: 8px; margin-bottom: 14px; }
+  .s-box { flex: 1; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 10px; background: #fafafa; }
+  .s-label { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+  .s-value { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-top: 2px; }
+  .s-value.accent { color: #c47d00; }
+  table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  thead tr { background: #1a1a2e; }
+  th { padding: 8px 7px; text-align: left; font-weight: 700; color: #e8eaf2; font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; }
+  th.r, td.r { text-align: right; } th.c, td.c { text-align: center; }
+  td { padding: 7px 7px; border-bottom: 1px solid #efefef; vertical-align: middle; }
+  tr.alt td { background: #f7f9ff; }
+  .bold { font-weight: 700; }
+  .total-row td { background: #fff8e6 !important; font-weight: 700; border-top: 2px solid #f5a623; border-bottom: 2px solid #f5a623; font-size: 10.5px; }
+  .total-row td.accent { color: #c47d00; font-size: 11px; }
+  .grand-box { margin-top: 14px; background: #f5a623; border-radius: 7px; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; }
+  .g-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #1a1000; }
+  .g-label small { display: block; font-size: 8.5px; font-weight: 400; opacity: 0.7; }
+  .g-value { font-size: 24px; font-weight: 700; color: #1a1000; }
+  .footer { margin-top: 12px; display: flex; justify-content: space-between; font-size: 8.5px; color: #aaa; }
+</style></head><body>
+
+<div class="header">
+  <div>
+    <div class="brand">SITE<span>LOG</span></div>
+    <div class="report-title">Monthly Labour Report — ${monthLabel(selYM)}${selC ? ' | '+selC : ' | All Contractors'}</div>
+  </div>
+  <div class="meta-right">
+    <strong>${monthLabel(selYM)}</strong><br>
+    Generated: ${formatDate(today())}<br>
+    Entries: ${rows.length}
+  </div>
+</div>
+
+<div class="summary-strip">
+  <div class="s-box"><div class="s-label">Days Worked</div><div class="s-value">${rows.length}</div></div>
+  <div class="s-box"><div class="s-label">Worker Types</div><div class="s-value">${allKeys.length}</div></div>
+  ${allKeys.map(k => `<div class="s-box"><div class="s-label">${keyMeta[k].icon} ${keyMeta[k].label}</div><div class="s-value accent">₹${keyTotals[k].toLocaleString('en-IN')}</div></div>`).join('')}
+  <div class="s-box"><div class="s-label">Grand Total</div><div class="s-value accent">₹${totalSpent.toLocaleString('en-IN')}</div></div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th class="c" style="width:28px">Sr.</th>
+      <th>Date</th>
+      <th>Contractor</th>
+      ${allKeys.map(k => `<th class="r">${keyMeta[k].icon} ${keyMeta[k].label}</th>`).join('')}
+      <th class="r">Grand Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${tableRows}
+    <tr class="total-row">
+      <td colspan="3" class="bold">MONTH TOTAL (${rows.length} days)</td>
+      ${allKeys.map(k => `<td class="r accent">₹${keyTotals[k].toLocaleString('en-IN')}</td>`).join('')}
+      <td class="r accent">₹${totalSpent.toLocaleString('en-IN')}</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="grand-box">
+  <div class="g-label">Month Grand Total<small>${monthLabel(selYM)}${selC?' — '+selC:''}</small></div>
+  <div class="g-value">₹${totalSpent.toLocaleString('en-IN')}</div>
+</div>
+
+<div class="footer">
+  <span>SiteLog — Daily Labour Report System</span>
+  <span>Printed: ${new Date().toLocaleString('en-IN')}</span>
+</div>
+</body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+}
+
+// ─────────────────────────────────────────────────────
+// DASHBOARD
+// ─────────────────────────────────────────────────────
+function renderDashboard() {
+  document.getElementById('stat-count').textContent = reports.length;
+  document.getElementById('stat-total').textContent = '₹' + reports.reduce((s,r)=>s+r.grandTotal,0).toLocaleString('en-IN');
+  const totalWorkers = reports.reduce((s,r)=>s+r.workers.reduce((a,w)=>a+w.count,0),0);
+  document.getElementById('stat-workers').textContent = totalWorkers;
+
+  // Unique categories ever used
+  const allCats = new Set();
+  reports.forEach(r => r.workers.forEach(w => allCats.add(w.label)));
+  document.getElementById('stat-cats').textContent = allCats.size;
+
+  // By contractor
+  const byC = {};
+  reports.forEach(r => {
+    if (!byC[r.contractor]) byC[r.contractor] = { total: 0, count: 0 };
+    byC[r.contractor].total += r.grandTotal;
+    byC[r.contractor].count++;
+  });
+  const cEl = document.getElementById('contractor-summary');
+  if (!Object.keys(byC).length) { cEl.innerHTML='<div class="empty-state"><div class="empty-text">No data yet</div></div>'; }
+  else cEl.innerHTML = Object.entries(byC).sort((a,b)=>b[1].total-a[1].total).map(([name,d])=>`
+    <div class="record-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div><div class="record-name">${name}</div><div class="record-date">${d.count} report${d.count!==1?'s':''}</div></div>
+      <div class="record-badge">₹${d.total.toLocaleString('en-IN')}</div>
+    </div>`).join('');
+
+  // By worker type
+  const byW = {};
+  reports.forEach(r => r.workers.forEach(w => {
+    if (!byW[w.label]) byW[w.label] = { icon: w.icon, total: 0, days: 0 };
+    byW[w.label].total += w.total;
+    byW[w.label].days  += w.count;
+  }));
+  const wEl = document.getElementById('worker-type-summary');
+  if (!Object.keys(byW).length) { wEl.innerHTML='<div class="empty-state"><div class="empty-text">No data yet</div></div>'; }
+  else wEl.innerHTML = Object.entries(byW).sort((a,b)=>b[1].total-a[1].total).map(([label,d])=>`
+    <div class="record-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div><div class="record-name">${d.icon} ${label}</div><div class="record-date">${d.days} man-days</div></div>
+      <div class="record-badge">₹${d.total.toLocaleString('en-IN')}</div>
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────────────────
+// SINGLE RECORD PDF & WHATSAPP
+// ─────────────────────────────────────────────────────
+function shareWhatsApp(i) {
+  const r = reports[i];
+  const lines = r.workers.map(w =>
+    `${w.icon} ${w.label}: ${w.count} × ₹${w.rate} = ₹${w.total.toLocaleString('en-IN')}`
+  ).join('\n');
+  const msg = `*Daily Labour Report*\n📅 Date: ${formatDate(r.date)}\n🏗 Contractor: ${r.contractor}\n\n${lines}\n\n💰 *Grand Total: ₹${r.grandTotal.toLocaleString('en-IN')}*`;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank');
+}
+
+function exportPDF(i) {
+  const r = reports[i];
+  const tableRows = r.workers.map(w => `
+    <tr>
+      <td>${w.icon} ${w.label}</td>
+      <td class="r">${w.count}</td>
+      <td class="r">₹${w.rate.toLocaleString('en-IN')}</td>
+      <td class="r">₹${w.total.toLocaleString('en-IN')}</td>
+    </tr>`).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Labour Report</title>
+  <style>
+    @page{size:A5;margin:15mm}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#222}
+    .logo{font-size:20px;font-weight:700;color:#f5a623;letter-spacing:1px}
+    .sub{color:#888;margin:4px 0 18px;font-size:11px}
+    table{width:100%;border-collapse:collapse;margin:10px 0}
+    thead tr{background:#1a1a2e}
+    th{color:#fff;padding:8px 10px;text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:0.5px}
+    th.r,td.r{text-align:right}
+    td{padding:9px 10px;border-bottom:1px solid #eee}
+    .grand{background:#f5a623;color:#1a1000;font-size:16px;padding:13px 16px;border-radius:6px;display:flex;justify-content:space-between;margin-top:14px;font-weight:700}
+  </style></head><body>
+  <div class="logo">SITE<span style="color:#222">LOG</span></div>
+  <div class="sub">Daily Labour Report &nbsp;|&nbsp; ${formatDate(r.date)} &nbsp;|&nbsp; ${r.contractor}</div>
+  <table>
+    <thead><tr><th>Category</th><th class="r">Count</th><th class="r">Rate (₹)</th><th class="r">Amount (₹)</th></tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+  <div class="grand"><span>GRAND TOTAL</span><span>₹${r.grandTotal.toLocaleString('en-IN')}</span></div>
+  </body></html>`);
+  win.document.close(); win.print();
+}
+
+// ─────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────
+function today() { return new Date().toISOString().split('T')[0]; }
+function formatDate(d) { if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+function save() { localStorage.setItem('sitelog_v2', JSON.stringify(reports)); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+document.getElementById('edit-modal').addEventListener('click', function(e) { if(e.target===this) closeModal('edit-modal'); });
+document.getElementById('custom-modal').addEventListener('click', function(e) { if(e.target===this) closeModal('custom-modal'); });
+</script>
+</body>
+</html>
