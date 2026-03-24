@@ -163,23 +163,21 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 
 <!-- RECORDS PAGE -->
 <div class="page" id="page-records">
-  <div style="display:flex; gap:10px; margin-bottom:20px">
-    <button class="btn btn-primary" onclick="exportAllPDF()">📄 EXPORT ALL PDF</button>
-    <button class="btn btn-secondary" onclick="exportAllExcel()">📊 EXPORT ALL EXCEL</button>
-  </div>
   <div id="records-list"></div>
 </div>
 
 <!-- MONTHLY PAGE -->
 <div class="page" id="page-monthly">
   <div class="card" style="border-left: 5px solid var(--primary); padding: 15px">
-    <div class="field">
-      <label>Select Month</label>
-      <select id="filter-month" onchange="renderMonthly()"></select>
-    </div>
-    <div class="field">
-      <label>Select Date (Optional)</label>
-      <input type="date" id="filter-date" onchange="renderMonthly()">
+    <div style="display:flex; gap:10px">
+      <div class="field" style="flex:1">
+        <label>From Date</label>
+        <input type="date" id="filter-from-date" onchange="renderMonthly()">
+      </div>
+      <div class="field" style="flex:1">
+        <label>To Date</label>
+        <input type="date" id="filter-to-date" onchange="renderMonthly()">
+      </div>
     </div>
     <div class="field" style="margin-bottom:0">
       <label>Select Contractor</label>
@@ -356,7 +354,7 @@ function renderRecords() {
       <div style="display:flex; gap:10px; margin-top:15px">
         <button class="btn-sm btn-pdf" style="flex:1" onclick="exportPDF(${i})">📄 PDF</button>
         <button class="btn-sm btn-excel" style="flex:1" onclick="exportExcel(${i})">📊 Excel</button>
-        <button class="btn-sm btn-delete" style="flex:1" onclick="deleteReport(${i})">Delete</button>
+        <button class="btn-sm btn-wa" style="flex:1" onclick="shareWhatsAppExcel(${i})">📱 WhatsApp</button>
       </div>
     </div>`).join('');
 }
@@ -376,10 +374,10 @@ function initMonthlyFilters() {
 }
 
 function renderMonthly() {
-  const selYM = document.getElementById('filter-month').value;
-  const selDate = document.getElementById('filter-date').value;
+  const fromDate = document.getElementById('filter-from-date').value;
+  const toDate = document.getElementById('filter-to-date').value;
   const selC = document.getElementById('filter-contractor').value;
-  if (!selYM || selYM === "No logs found") {
+  if (!fromDate || !toDate) {
     document.getElementById('month-empty').style.display = 'block';
     document.getElementById('month-table-wrap').style.display = 'none';
     document.getElementById('month-summary-cards').innerHTML = '';
@@ -387,12 +385,11 @@ function renderMonthly() {
     return;
   }
 
-  let filtered = reports.filter(r => ym(r.date) === selYM);
-  if (selDate) filtered = filtered.filter(r => r.date === selDate);
+  let filtered = reports.filter(r => r.date >= fromDate && r.date <= toDate);
   if (selC) filtered = filtered.filter(r => r.contractor === selC);
   filtered.sort((a,b) => a.date.localeCompare(b.date));
 
-  // Update contractor filter for selected month
+  // Update contractor filter for selected date range
   const conts = [...new Set(filtered.map(r => r.contractor))].sort();
   const cSel = document.getElementById('filter-contractor');
   const currentSel = cSel.value;
@@ -435,11 +432,10 @@ function renderMonthly() {
 }
 
 function exportMonthlyPDF() {
-  const selYM = document.getElementById('filter-month').value;
-  const selDate = document.getElementById('filter-date').value;
+  const fromDate = document.getElementById('filter-from-date').value;
+  const toDate = document.getElementById('filter-to-date').value;
   const selC = document.getElementById('filter-contractor').value;
-  let filtered = reports.filter(r => ym(r.date) === selYM);
-  if (selDate) filtered = filtered.filter(r => r.date === selDate);
+  let filtered = reports.filter(r => r.date >= fromDate && r.date <= toDate);
   if (selC) filtered = filtered.filter(r => r.contractor === selC);
   if (!filtered.length) return;
 
@@ -468,11 +464,10 @@ function exportMonthlyPDF() {
     </style>
   </head><body>
     <div class="header-container">
-      <div class="header-title">Monthly Labour Report</div>
-      <div class="header-detail">COMPANY: ${(filtered[0].company || 'NCC LIMITED')}</div>
+      <div class="header-title">Labour Report</div>
+      <div class="header-detail">FROM: ${formatDate(fromDate)}</div>
+      <div class="header-detail">TO: ${formatDate(toDate)}</div>
       <div class="header-detail">CONTRACTOR: ${(selC || 'ALL CONTRACTORS')}</div>
-      <div class="header-detail">MONTH: ${monthLabel(selYM).toUpperCase()}</div>
-      ${selDate ? `<div class="header-detail">DATE: ${formatDate(selDate)}</div>` : ''}
     </div>
     <table>
       <thead>
@@ -510,20 +505,25 @@ function exportMonthlyPDF() {
 }
 
 function exportMonthlyExcel() {
-  const selYM = document.getElementById('filter-month').value;
-  const selDate = document.getElementById('filter-date').value;
+  const fromDate = document.getElementById('filter-from-date').value;
+  const toDate = document.getElementById('filter-to-date').value;
   const selC = document.getElementById('filter-contractor').value;
-  let filtered = reports.filter(r => ym(r.date) === selYM);
-  if (selDate) filtered = filtered.filter(r => r.date === selDate);
+  let filtered = reports.filter(r => r.date >= fromDate && r.date <= toDate);
   if (selC) filtered = filtered.filter(r => r.contractor === selC);
   if (!filtered.length) return;
+
   const allKeys = []; const keyMeta = {};
   filtered.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
-  let csv = `COMPANY,${filtered[0].company || 'NCC LIMITED'}\nCONTRACTOR,${selC || 'ALL'}\nMONTH,${monthLabel(selYM)}\n`;
-  if (selDate) csv += `DATE,${formatDate(selDate)}\n`;
-  csv += `\nS.No,Date,${allKeys.map(k => keyMeta[k]+'s').join(',')},Daily Amount,Remarks\n`;
-  filtered.forEach((r, i) => { csv += `${i+1},${formatDate(r.date)},${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return w?w.total:0;}).join(',')},${r.grandTotal},\n`; });
-  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Monthly_Report_${selYM}`);
+  const totalSpent = filtered.reduce((s, r) => s + r.grandTotal, 0);
+
+  let csv = 'S.N,Date,' + allKeys.map(k => keyMeta[k] + 's').join(',') + ',Daily Amount (Rs),Remarks\n';
+  filtered.forEach((r, i) => {
+    csv += `${i+1},${formatDate(r.date)},${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return w ? w.total : 0;}).join(',')},₹${r.grandTotal},\n`;
+  });
+  csv += `TOTAL,,${allKeys.map(k => filtered.reduce((s,r)=>{const w=r.workers.find(wk=>wk.key===k); return s+(w?w.total:0);},0)).join(',')},₹${totalSpent},\n`;
+  csv += `GRAND TOTAL,,${allKeys.map(() => '').join(',')},₹${totalSpent},\n`;
+
+  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Labour_Report_${fromDate}_to_${toDate}.csv`);
 }
 
 function shareWhatsAppPdf(i) {
@@ -629,6 +629,16 @@ function exportAllExcel() {
 }
 
 function exportExcel(i) {
+  const r = reports[i];
+  const allKeys = []; const keyMeta = {};
+  r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } });
+  let csv = `COMPANY,${r.company || 'NCC LIMITED'}\nCONTRACTOR,${r.contractor}\nDATE,${formatDate(r.date)}\n\nLabour Category,Count,Rate,Total\n`;
+  r.workers.forEach(w => { csv += `${w.label},${w.count},${w.rate},${w.total}\n`; });
+  csv += `\nGRAND TOTAL,,${r.grandTotal}\n`;
+  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Report_${r.date}`);
+}
+
+function shareWhatsAppExcel(i) {
   const r = reports[i];
   const allKeys = []; const keyMeta = {};
   r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } });
