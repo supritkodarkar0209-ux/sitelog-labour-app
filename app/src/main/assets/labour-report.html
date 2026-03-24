@@ -670,7 +670,7 @@ function exportExcel(i) {
   let csv = `COMPANY,${r.company || 'NCC LIMITED'}\nCONTRACTOR,${r.contractor}\nDATE,${formatDate(r.date)}\n\nLabour Category,Count,Rate,Total\n`;
   r.workers.forEach(w => { csv += `${w.label},${w.count},${w.rate},${w.total}\n`; });
   csv += `\nGRAND TOTAL,,${r.grandTotal}\n`;
-  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Report_${r.date}`);
+  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Report_${r.date.replace(/\//g, '-')}`);
 }
 
 function shareWhatsAppExcel(i) {
@@ -680,7 +680,7 @@ function shareWhatsAppExcel(i) {
   let csv = `COMPANY,${r.company || 'NCC LIMITED'}\nCONTRACTOR,${r.contractor}\nDATE,${formatDate(r.date)}\n\nLabour Category,Count,Rate,Total\n`;
   r.workers.forEach(w => { csv += `${w.label},${w.count},${w.rate},${w.total}\n`; });
   csv += `\nGRAND TOTAL,,${r.grandTotal}\n`;
-  if (window.Android && window.Android.shareToWhatsApp) window.Android.shareToWhatsApp(csv, `Report_${r.date}`);
+  if (window.Android && window.Android.shareToWhatsApp) window.Android.shareToWhatsApp(csv, `Report_${r.date.replace(/\//g, '-')}`);
 }
 
 function exportContractorExcel(name) {
@@ -691,7 +691,7 @@ function exportContractorExcel(name) {
   const total = contractorReports.reduce((s, r) => s + r.grandTotal, 0);
   let csv = `CONTRACTOR,${name}\nTOTAL ENTRIES,${contractorReports.length}\nGRAND TOTAL,${total}\n\nS.No,Date,${allKeys.map(k => keyMeta[k]+'s').join(',')},Daily Amount\n`;
   contractorReports.forEach((r, i) => { csv += `${i+1},${formatDate(r.date)},${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return w?w.total:0;}).join(',')},${r.grandTotal}\n`; });
-  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Contractor_${name}`);
+  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Contractor_${name.replace(/[^a-zA-Z0-9]/g, '_')}`);
 }
 
 function exportContractorPDF(name) {
