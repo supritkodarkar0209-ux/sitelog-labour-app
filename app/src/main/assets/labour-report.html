@@ -767,7 +767,6 @@ function exportContractorPDF(name) {
 }
 
 function renderDashboard() {
-  console.log('renderDashboard called, reports:', reports.length);
   const total = reports.reduce((s, r) => s + r.grandTotal, 0);
   document.getElementById('stat-total').textContent = '₹' + total.toLocaleString('en-IN');
   document.getElementById('stat-count').textContent = reports.length;
