@@ -628,6 +628,41 @@ function exportAllExcel() {
   if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, 'All_Reports');
 }
 
+function exportPDF(i) {
+  const r = reports[i];
+  const html = `<!DOCTYPE html><html><head>
+    <style>
+      body { font-family: 'Segoe UI', sans-serif; color: #1e293b; padding: 20px; }
+      .box { border: 2.5px solid #2563eb; padding: 20px; border-radius: 12px; background: #f8fafc; text-align: center; margin-bottom: 25px; }
+      .company { color: #2563eb; font-weight: 900; font-size: 22px; text-transform: uppercase; margin-bottom: 8px; }
+      .details { font-size: 14px; font-weight: 700; color: #64748b; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #cbd5e1; padding: 14px; text-align: center; }
+      th { background: #2563eb; color: #ffffff; text-transform: uppercase; font-size: 12px; }
+      td { font-weight: 700; font-size: 14px; }
+      .total-box { margin-top: 25px; background: #0f172a; color: #fbbf24; padding: 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+      .total-val { font-size: 24px; font-weight: 900; }
+    </style>
+  </head><body>
+    <div class="box">
+      <div class="company">${(r.company || 'NCC LIMITED')}</div>
+      <div class="details">CONTRACTOR: ${r.contractor.toUpperCase()}</div>
+      <div class="details">DATE: ${formatDate(r.date)}</div>
+    </div>
+    <table>
+      <thead><tr><th>Labour Category</th><th>Count</th><th>Rate</th><th>Total</th></tr></thead>
+      <tbody>
+        ${r.workers.map(w => `<tr><td style="text-align:left">${w.icon} ${w.label}</td><td>${w.count}</td><td>₹${w.rate}</td><td style="color:#2563eb">₹${w.total.toLocaleString('en-IN')}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="total-box">
+      <span style="font-weight:800; font-size:16px">GRAND TOTAL</span>
+      <span class="total-val">₹${r.grandTotal.toLocaleString('en-IN')}</span>
+    </div>
+  </body></html>`;
+  if (window.Android && window.Android.printHtml) window.Android.printHtml(html);
+}
+
 function exportExcel(i) {
   const r = reports[i];
   const allKeys = []; const keyMeta = {};
@@ -645,7 +680,7 @@ function shareWhatsAppExcel(i) {
   let csv = `COMPANY,${r.company || 'NCC LIMITED'}\nCONTRACTOR,${r.contractor}\nDATE,${formatDate(r.date)}\n\nLabour Category,Count,Rate,Total\n`;
   r.workers.forEach(w => { csv += `${w.label},${w.count},${w.rate},${w.total}\n`; });
   csv += `\nGRAND TOTAL,,${r.grandTotal}\n`;
-  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Report_${r.date}`);
+  if (window.Android && window.Android.shareToWhatsApp) window.Android.shareToWhatsApp(csv, `Report_${r.date}`);
 }
 
 function exportContractorExcel(name) {

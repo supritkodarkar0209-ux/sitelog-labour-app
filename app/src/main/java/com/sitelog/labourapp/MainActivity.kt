@@ -142,6 +142,33 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        @JavascriptInterface
+        fun shareToWhatsApp(csvContent: String, filename: String) {
+            try {
+                val file = File(mContext.cacheDir, "$filename.csv")
+                val fos = FileOutputStream(file)
+                fos.write(csvContent.toByteArray())
+                fos.close()
+                
+                val uri = FileProvider.getUriForFile(mContext, "com.sitelog.labourapp.fileprovider", file)
+                val intent = Intent(Intent.ACTION_SEND)
+                intent.type = "text/csv"
+                intent.putExtra(Intent.EXTRA_STREAM, uri)
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                intent.setPackage("com.whatsapp") // Target WhatsApp specifically
+                
+                try {
+                    mContext.startActivity(intent)
+                } catch (e: Exception) {
+                    // WhatsApp not installed, fall back to chooser
+                    intent.setPackage(null)
+                    mContext.startActivity(Intent.createChooser(intent, "Share via"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         private fun createPdfAndShare(view: WebView, filename: String) {
             try {
                 val document = PdfDocument()
