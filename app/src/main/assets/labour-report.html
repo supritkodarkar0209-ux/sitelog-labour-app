@@ -80,6 +80,7 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 .btn:disabled { opacity: 0.5; cursor: not-allowed; background: #cbd5e1; color: #64748b; }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-secondary { background: #fff; color: var(--text-main); border: 1.5px solid var(--border); }
+.btn-danger { background: #dc2626; color: #fff; border: 1.5px solid #dc2626; }
 .btn-sm { width: auto; padding: 8px 12px; font-size: 12px; border-radius: 8px; font-weight: 700; border: 1.5px solid var(--border); background: #fff; cursor: pointer; }
 
 /* RECORDS LIST */
@@ -355,6 +356,7 @@ function renderRecords() {
         <button class="btn-sm btn-pdf" style="flex:1" onclick="exportPDF(${i})">📄 PDF</button>
         <button class="btn-sm btn-excel" style="flex:1" onclick="exportExcel(${i})">📊 Excel</button>
         <button class="btn-sm btn-wa" style="flex:1" onclick="shareWhatsAppExcel(${i})">📱 WhatsApp</button>
+        <button class="btn-sm btn-danger" style="flex:1" onclick="deleteReport(${i})">🗑️ Delete</button>
       </div>
     </div>`).join('');
 }
@@ -683,15 +685,22 @@ function shareWhatsAppExcel(i) {
   if (window.Android && window.Android.shareToWhatsApp) window.Android.shareToWhatsApp(csv, `Report_${r.date.replace(/\//g, '-')}`);
 }
 
-function exportContractorExcel(name) {
-  const contractorReports = reports.filter(r => r.contractor === name);
-  if (!contractorReports.length) return;
+function exportMonthlyExcelFromStats(month) {
+  let filtered = reports.filter(r => ym(r.date) === month);
+  if (!filtered.length) return;
+
   const allKeys = []; const keyMeta = {};
-  contractorReports.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
-  const total = contractorReports.reduce((s, r) => s + r.grandTotal, 0);
-  let csv = `CONTRACTOR,${name}\nTOTAL ENTRIES,${contractorReports.length}\nGRAND TOTAL,${total}\n\nS.No,Date,${allKeys.map(k => keyMeta[k]+'s').join(',')},Daily Amount\n`;
-  contractorReports.forEach((r, i) => { csv += `${i+1},${formatDate(r.date)},${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return w?w.total:0;}).join(',')},${r.grandTotal}\n`; });
-  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Contractor_${name.replace(/[^a-zA-Z0-9]/g, '_')}`);
+  filtered.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
+  const totalSpent = filtered.reduce((s, r) => s + r.grandTotal, 0);
+
+  let csv = 'S.N,Date,' + allKeys.map(k => keyMeta[k] + 's').join(',') + ',Daily Amount (Rs),Remarks\n';
+  filtered.forEach((r, i) => {
+    csv += `${i+1},${formatDate(r.date)},${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return w ? w.total : 0;}).join(',')},₹${r.grandTotal},\n`;
+  });
+  csv += `TOTAL,,${allKeys.map(k => filtered.reduce((s,r)=>{const w=r.workers.find(wk=>wk.key===k); return s+(w?w.total:0);},0)).join(',')},₹${totalSpent},\n`;
+  csv += `GRAND TOTAL,,${allKeys.map(() => '').join(',')},₹${totalSpent},\n`;
+
+  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Monthly_Report_${month}.csv`);
 }
 
 function exportContractorPDF(name) {
@@ -761,24 +770,25 @@ function renderDashboard() {
   const total = reports.reduce((s, r) => s + r.grandTotal, 0);
   document.getElementById('stat-total').textContent = '₹' + total.toLocaleString('en-IN');
   document.getElementById('stat-count').textContent = reports.length;
-  const byC = {};
+  
+  // Group by month
+  const byMonth = {};
   reports.forEach(r => {
-    if (!byC[r.contractor]) byC[r.contractor] = { sum: 0, count: 0 };
-    byC[r.contractor].sum += r.grandTotal;
-    byC[r.contractor].count += 1;
+    const month = ym(r.date);
+    if (!byMonth[month]) byMonth[month] = { sum: 0, count: 0 };
+    byMonth[month].sum += r.grandTotal;
+    byMonth[month].count += 1;
   });
-  document.getElementById('contractor-summary').innerHTML = Object.entries(byC).sort((a,b) => b[1].sum - a[1].sum).map(([name, data]) => `
+  
+  document.getElementById('contractor-summary').innerHTML = Object.entries(byMonth).sort((a,b) => b[0].localeCompare(a[0])).map(([month, data]) => `
     <div class="card" style="padding:15px; margin-bottom:10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <span style="font-weight:700; font-size:15px">${name}</span>
+        <span style="font-weight:700; font-size:15px">${monthLabel(month)}</span>
         <span style="font-weight:800; color:var(--primary)">₹${data.sum.toLocaleString('en-IN')}</span>
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <span style="font-size:14px; color:#666;">Entries: ${data.count}</span>
-        <div style="display:flex; gap:10px;">
-          <button class="btn-sm btn-pdf" onclick="exportContractorPDF('${name}')">📄 PDF</button>
-          <button class="btn-sm btn-excel" onclick="exportContractorExcel('${name}')">📊 Excel</button>
-        </div>
+        <button class="btn-sm btn-excel" onclick="exportMonthlyExcelFromStats('${month}')">📊 Export Excel</button>
       </div>
     </div>`).join('');
 }
