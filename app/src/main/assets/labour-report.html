@@ -220,7 +220,7 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
       <div id="stat-count" style="font-size:22px; font-weight:900; color:var(--accent); margin:8px 0">0</div>
     </div>
   </div>
-  <p class="section-title">Log Volume per Contractor</p>
+  <p class="section-title">Monthly & Contractor Summary</p>
   <div id="contractor-summary"></div>
 </div>
 
@@ -767,6 +767,7 @@ function exportContractorPDF(name) {
 }
 
 function renderDashboard() {
+  console.log('renderDashboard called, reports:', reports.length);
   const total = reports.reduce((s, r) => s + r.grandTotal, 0);
   document.getElementById('stat-total').textContent = '₹' + total.toLocaleString('en-IN');
   document.getElementById('stat-count').textContent = reports.length;
