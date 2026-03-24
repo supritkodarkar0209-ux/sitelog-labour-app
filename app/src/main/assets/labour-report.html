@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SiteLog Pro — Professional Labour Reporting</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1e40af;
+  --primary-light: #eff6ff;
+  --accent: #f59e0b;
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border: #cbd5e1;
+  --success: #10b981;
+  --danger: #ef4444;
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); min-height: 100vh; padding-bottom: 80px; }
+
+/* HEADER */
+.header { background: var(--primary); color: #fff; padding: 20px; text-align: center; box-shadow: var(--shadow); }
+.header h1 { font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+.header p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+
+/* TABS */
+.tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+.tab { flex: 1; padding: 16px 5px; text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); cursor: pointer; border-bottom: 4px solid transparent; transition: all 0.2s; text-transform: uppercase; }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--primary-light); }
+
+.page { display: none; padding: 16px; animation: fadeIn 0.3s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin: 24px 0 12px; display: flex; align-items: center; gap: 10px; }
+.section-title::after { content: ""; flex: 1; height: 1.5px; background: var(--border); }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 18px; box-shadow: var(--shadow); }
+
+.field { margin-bottom: 16px; }
+label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
+
+input[type="text"], input[type="date"], input[type="number"], select {
+  width: 100%; background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 14px; font-family: inherit; font-size: 15px; color: var(--text-main);
+  outline: none; transition: 0.2s;
+}
+input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
+
+/* WORKER CARDS */
+.worker-card { background: #fff; border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+.worker-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.worker-card-title { font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; font-size: 16px; }
+.worker-subtotal { font-weight: 800; color: var(--primary); font-size: 17px; }
+.worker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.remove-worker-btn { background: #fee2e2; border: none; color: var(--danger); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; font-weight: 700; }
+
+/* CHIPS */
+.preset-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.chip { padding: 10px 16px; border-radius: 25px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1.5px solid var(--border); background: #fff; color: var(--text-muted); transition: all 0.2s; }
+.chip.used { background: #f1f5f9; color: #cbd5e1; border-style: dashed; }
+.chip:not(.used):hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+/* TOTALS CARD */
+.totals-card { background: #0f172a; color: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+.total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.total-row:last-child { border-bottom: none; }
+.grand-row { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 2.5px solid var(--accent); }
+.grand-label { font-weight: 800; font-size: 15px; color: var(--accent); }
+.grand-value { font-size: 28px; font-weight: 900; color: var(--accent); }
+
+/* BUTTONS */
+.btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; background: #cbd5e1; color: #64748b; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-secondary { background: #fff; color: var(--text-main); border: 1.5px solid var(--border); }
+.btn-sm { width: auto; padding: 8px 12px; font-size: 12px; border-radius: 8px; font-weight: 700; border: 1.5px solid var(--border); background: #fff; cursor: pointer; }
+
+/* RECORDS LIST */
+.record-card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.record-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.record-company { font-size: 11px; font-weight: 800; color: var(--primary); background: var(--primary-light); padding: 3px 10px; border-radius: 6px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; }
+.record-name { font-weight: 800; font-size: 17px; color: var(--text-main); }
+.record-total { color: var(--accent); font-weight: 900; font-size: 18px; }
+
+/* MONTHLY TABLE */
+.month-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+.month-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
+.month-table th { background: #f1f5f9; padding: 12px; border: 1px solid var(--border); font-weight: 800; text-align: center; }
+.month-table td { padding: 10px; border: 1px solid var(--border); text-align: center; font-weight: 600; }
+
+.toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 40px; font-size: 14px; font-weight: 700; z-index: 999; opacity: 0; transition: 0.3s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); visibility: hidden; }
+.toast.show { opacity: 1; visibility: visible; }
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.empty-icon { font-size: 50px; margin-bottom: 15px; opacity: 0.3; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SiteLog Pro</h1>
+  <p>Labour Management System</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage('form',this)">New Entry</div>
+  <div class="tab" onclick="showPage('records',this)">Logs</div>
+  <div class="tab" onclick="showPage('monthly',this)">Summary</div>
+  <div class="tab" onclick="showPage('dashboard',this)">Stats</div>
+</div>
+
+<!-- ENTRY PAGE -->
+<div class="page active" id="page-form">
+  <p class="section-title">Log Information</p>
+  <div class="card">
+    <div class="field">
+      <label>Company Name</label>
+      <input type="text" id="company" list="company-list" placeholder="e.g. NCC LIMITED">
+      <datalist id="company-list"></datalist>
+    </div>
+    <div class="field">
+      <label>Contractor Name</label>
+      <input type="text" id="contractor" list="contractor-list" placeholder="Enter name">
+      <datalist id="contractor-list"></datalist>
+      <div id="err-contractor" style="color:var(--danger); font-size:11px; margin-top:4px; display:none; font-weight:700">Contractor is required</div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Date</label>
+      <input type="date" id="date">
+    </div>
+  </div>
+
+  <p class="section-title">Labour Categories</p>
+  <div class="preset-chips" id="preset-chips">
+    <div class="chip" data-key="mason" data-icon="🧱" data-label="Mason" onclick="addPreset(this)">+ Mason</div>
+    <div class="chip" data-key="helper" data-icon="👷" data-label="Helper" onclick="addPreset(this)">+ Helper</div>
+    <div class="chip" data-key="supervisor" data-icon="📋" data-label="Supervisor" onclick="addPreset(this)">+ Supervisor</div>
+    <div class="chip" data-key="carpenter" data-icon="🪚" data-label="Carpenter" onclick="addPreset(this)">+ Carpenter</div>
+    <div class="chip" data-key="electrician" data-icon="⚡" data-label="Electrician" onclick="addPreset(this)">+ Electrician</div>
+    <div class="chip" data-key="plumber" data-icon="🔧" data-label="Plumber" onclick="addPreset(this)">+ Plumber</div>
+  </div>
+
+  <div id="worker-cards"></div>
+  <button class="btn btn-secondary btn-add-custom" style="border-style:dashed" onclick="openCustomModal()">+ ADD OTHER CATEGORY</button>
+
+  <div class="totals-card">
+    <div id="live-totals-list"></div>
+    <div class="grand-row">
+      <span class="grand-label">GRAND TOTAL</span>
+      <span class="grand-value" id="grand-total">₹0</span>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveReport()">💾 SAVE DAILY LOG</button>
+  <button class="btn btn-secondary" onclick="resetForm()">↺ RESET FORM</button>
+</div>
+
+<!-- RECORDS PAGE -->
+<div class="page" id="page-records">
+  <div id="records-list"></div>
+</div>
+
+<!-- MONTHLY PAGE -->
+<div class="page" id="page-monthly">
+  <div class="card" style="border-left: 5px solid var(--primary); padding: 15px">
+    <div class="field">
+      <label>Select Month</label>
+      <select id="filter-month" onchange="renderMonthly()"></select>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Select Contractor</label>
+      <select id="filter-contractor" onchange="renderMonthly()">
+        <option value="">All Contractors</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="month-summary-cards" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px"></div>
+
+  <div class="month-table-wrap" id="month-table-wrap" style="display:none">
+    <table class="month-table">
+      <thead><tr id="month-thead-row"></tr></thead>
+      <tbody id="month-tbody"></tbody>
+    </table>
+  </div>
+
+  <div id="month-empty" class="empty-state">
+    <div class="empty-icon">📊</div>
+    <div style="font-weight:600">Please select a month to view summary</div>
+  </div>
+
+  <div id="monthly-actions" style="display:flex; flex-direction:column; gap:12px; margin-top:24px">
+    <button class="btn btn-primary" onclick="exportMonthlyPDF()">📄 EXPORT PROFESSIONAL PDF</button>
+    <button class="btn btn-secondary" onclick="exportMonthlyExcel()" style="border-color:#10b981; color:#10b981; border-width:2.5px; background:#f0fdf4">📊 EXPORT EXCEL (CSV)</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="page-dashboard">
+  <div class="stats-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+    <div class="card" style="text-align:center; padding: 20px">
+      <div style="font-size:11px; font-weight:800; color:var(--text-muted)">TOTAL SPENT</div>
+      <div id="stat-total" style="font-size:22px; font-weight:900; color:var(--primary); margin:8px 0">₹0</div>
+    </div>
+    <div class="card" style="text-align:center; padding: 20px">
+      <div style="font-size:11px; font-weight:800; color:var(--text-muted)">TOTAL LOGS</div>
+      <div id="stat-count" style="font-size:22px; font-weight:900; color:var(--accent); margin:8px 0">0</div>
+    </div>
+  </div>
+  <p class="section-title">Log Volume per Contractor</p>
+  <div id="contractor-summary"></div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">Edit Daily Entry</div>
+    <div class="field"><label>Company</label><input type="text" id="edit-company"></div>
+    <div class="field"><label>Contractor</label><input type="text" id="edit-contractor"></div>
+    <div class="field"><label>Date</label><input type="date" id="edit-date"></div>
+    <div id="edit-worker-cards" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; padding: 10px"></div>
+    <div class="grand-row" style="background:var(--primary-light); color:var(--primary); border:1px solid #bfdbfe; margin-bottom:20px; padding: 15px; border-radius: 12px">
+      <span style="font-weight:800; font-size:14px">UPDATED TOTAL:</span>
+      <span id="edit-grand" style="font-weight:900; font-size:22px">₹0</span>
+    </div>
+    <button class="btn btn-primary" onclick="saveEdit()">UPDATE LOG</button>
+    <button class="btn btn-secondary" onclick="closeModal('edit-modal')">CANCEL</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="custom-modal">
+  <div class="modal">
+    <div class="modal-title">New work category</div>
+    <div class="field"><label>Name</label><input type="text" id="custom-name" placeholder="e.g. Painter"></div>
+    <div class="field"><label>Icon (emoji)</label><input type="text" id="custom-icon" placeholder="👤" maxlength="2" style="text-align:center; font-size:20px"></div>
+    <button class="btn btn-primary" onclick="confirmCustom()">ADD CATEGORY</button>
+    <button class="btn btn-secondary" onclick="closeModal('custom-modal')">CANCEL</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let reports = JSON.parse(localStorage.getItem('sitelog_v2') || '[]');
+let savedCompanies = JSON.parse(localStorage.getItem('sl_companies') || '["NCC LIMITED"]');
+let savedContractors = JSON.parse(localStorage.getItem('sl_contractors') || '[]');
+let editIndex = -1;
+let formWorkers = [];
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// Initial Boot
+document.getElementById('date').value = today();
+updateDatalists();
+addWorker('mason', 'Mason', '🧱');
+addWorker('helper', 'Helper', '👷');
+
+function updateDatalists() {
+  document.getElementById('company-list').innerHTML = savedCompanies.map(c => `<option value="${c}">`).join('');
+  document.getElementById('contractor-list').innerHTML = savedContractors.map(c => `<option value="${c}">`).join('');
+}
+
+function updateHistory(company, contractor) {
+  if (company && !savedCompanies.includes(company)) {
+    savedCompanies.push(company); localStorage.setItem('sl_companies', JSON.stringify(savedCompanies));
+  }
+  if (contractor && !savedContractors.includes(contractor)) {
+    savedContractors.push(contractor); localStorage.setItem('sl_contractors', JSON.stringify(savedContractors));
+  }
+  updateDatalists();
+}
+
+function addWorker(key, label, icon) {
+  if (formWorkers.find(w => w.key === key)) return;
+  formWorkers.push({ key, label, icon, count: 0, rate: 0 });
+  renderWorkerCards(); updateChips(); calcTotals();
+}
+
+function addPreset(chipEl) { const { key, label, icon } = chipEl.dataset; addWorker(key, label, icon); }
+function removeWorker(key) { formWorkers = formWorkers.filter(w => w.key !== key); renderWorkerCards(); updateChips(); calcTotals(); }
+
+function renderWorkerCards() {
+  const container = document.getElementById('worker-cards');
+  if (!formWorkers.length) { container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted); font-weight:600">Select labour category above</div>'; return; }
+  container.innerHTML = formWorkers.map(w => `
+    <div class="worker-card">
+      <div class="worker-card-header">
+        <div class="worker-card-title">${w.icon} ${w.label}</div>
+        <div style="display:flex; align-items:center; gap:12px">
+          <div class="worker-subtotal" id="subtotal-${w.key}">₹0</div>
+          <button class="remove-worker-btn" onclick="removeWorker('${w.key}')">✕</button>
+        </div>
+      </div>
+      <div class="worker-grid">
+        <div class="field"><label>Total Count</label><input type="number" id="count-${w.key}" value="${w.count||''}" placeholder="0" oninput="onWorkerInput('${w.key}')"></div>
+        <div class="field"><label>Rate (₹)</label><input type="number" id="rate-${w.key}" value="${w.rate||''}" placeholder="₹" oninput="onWorkerInput('${w.key}')"></div>
+      </div>
+    </div>`).join('');
+}
+
+function onWorkerInput(key) {
+  const w = formWorkers.find(w => w.key === key);
+  if (!w) return;
+  w.count = Math.max(0, +document.getElementById('count-'+key).value || 0);
+  w.rate  = Math.max(0, +document.getElementById('rate-'+key).value || 0);
+  document.getElementById('subtotal-'+key).textContent = '₹' + (w.count * w.rate).toLocaleString('en-IN');
+  calcTotals();
+}
+
+function calcTotals() {
+  let grand = 0; let html = '';
+  formWorkers.forEach(w => {
+    const amt = w.count * w.rate; grand += amt;
+    html += `<div class="total-row"><span>${w.icon} ${w.label}</span><span>₹${amt.toLocaleString('en-IN')}</span></div>`;
+  });
+  document.getElementById('live-totals-list').innerHTML = html;
+  document.getElementById('grand-total').textContent = '₹' + grand.toLocaleString('en-IN');
+}
+
+function updateChips() { document.querySelectorAll('#preset-chips .chip').forEach(chip => { chip.classList.toggle('used', !!formWorkers.find(w => w.key === chip.dataset.key)); }); }
+
+function saveReport() {
+  const comp = document.getElementById('company').value.trim() || 'NCC LIMITED';
+  const cont = document.getElementById('contractor').value.trim();
+  const date = document.getElementById('date').value;
+  if (!cont) { document.getElementById('err-contractor').style.display = 'block'; return; }
+  document.getElementById('err-contractor').style.display = 'none';
+  if (!formWorkers.length) { showToast('⚠️ Select at least one category'); return; }
+  updateHistory(comp, cont);
+  const workers = formWorkers.map(w => ({ ...w, total: w.count * w.rate }));
+  const grandTotal = workers.reduce((s, w) => s + w.total, 0);
+  reports.unshift({ id: Date.now(), company: comp, contractor: cont, date, workers, grandTotal });
+  localStorage.setItem('sitelog_v2', JSON.stringify(reports));
+  showToast('✅ Log Saved Successfully');
+  resetForm();
+}
+
+function resetForm() {
+  document.getElementById('contractor').value = '';
+  document.getElementById('date').value = today();
+  formWorkers = [];
+  addWorker('mason', 'Mason', '🧱');
+  addWorker('helper', 'Helper', '👷');
+}
+
+function showPage(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if (name === 'records') renderRecords();
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'monthly') initMonthlyFilters();
+}
+
+function renderRecords() {
+  const el = document.getElementById('records-list');
+  if (!reports.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><div style="font-weight:600">No logs found</div></div>'; return; }
+  el.innerHTML = reports.map((r, i) => `
+    <div class="record-card">
+      <div class="record-header">
+        <div style="flex:1">
+          <div class="record-company">${r.company || 'NCC LIMITED'}</div>
+          <div class="record-name">${r.contractor}</div>
+          <div class="record-date">${formatDate(r.date)}</div>
+        </div>
+        <div class="record-total">₹${r.grandTotal.toLocaleString('en-IN')}</div>
+      </div>
+      <div class="record-workers">${r.workers.map(w => `<span class="worker-pill">${w.label}: ${w.count}</span>`).join('')}</div>
+      <div style="display:flex; gap:10px; margin-top:15px">
+        <button class="btn-sm btn-edit" style="flex:1" onclick="editReport(${i})">Edit</button>
+        <button class="btn-sm btn-wa" style="flex:1" onclick="shareWhatsAppPdf(${i})">WhatsApp</button>
+        <button class="btn-sm btn-delete" style="flex:1" onclick="deleteReport(${i})">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function editReport(i) {
+  editIndex = i; const r = reports[i];
+  document.getElementById('edit-company').value = r.company || '';
+  document.getElementById('edit-contractor').value = r.contractor;
+  document.getElementById('edit-date').value = r.date;
+  document.getElementById('edit-worker-cards').innerHTML = r.workers.map((w, wi) => `
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:12px">
+      <div style="font-weight:800; font-size:14px; margin-bottom:10px; color:var(--primary)">${w.icon} ${w.label}</div>
+      <div style="display:flex; gap:12px">
+        <div style="flex:1"><label style="font-size:10px">Count</label><input type="number" class="edit-cnt" data-idx="${wi}" value="${w.count}"></div>
+        <div style="flex:1"><label style="font-size:10px">Rate (₹)</label><input type="number" class="edit-rt" data-idx="${wi}" value="${w.rate}"></div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('#edit-worker-cards input').forEach(input => input.oninput = calcEditTotal);
+  calcEditTotal(); document.getElementById('edit-modal').classList.add('show');
+}
+
+function calcEditTotal() {
+  let total = 0; const cnts = document.querySelectorAll('.edit-cnt'); const rts = document.querySelectorAll('.edit-rt');
+  cnts.forEach((c, idx) => { total += (+c.value || 0) * (+rts[idx].value || 0); });
+  document.getElementById('edit-grand').textContent = '₹' + total.toLocaleString('en-IN');
+}
+
+function saveEdit() {
+  const r = reports[editIndex];
+  r.company = document.getElementById('edit-company').value.trim();
+  r.contractor = document.getElementById('edit-contractor').value.trim();
+  r.date = document.getElementById('edit-date').value;
+  const cnts = document.querySelectorAll('.edit-cnt'); const rts = document.querySelectorAll('.edit-rt');
+  r.workers.forEach((w, idx) => { w.count = +cnts[idx].value || 0; w.rate = +rts[idx].value || 0; w.total = w.count * w.rate; });
+  r.grandTotal = r.workers.reduce((s, w) => s + w.total, 0);
+  localStorage.setItem('sitelog_v2', JSON.stringify(reports));
+  closeModal('edit-modal'); renderRecords(); showToast('Log Updated');
+}
+
+function deleteReport(i) { if (confirm('Delete this record?')) { reports.splice(i, 1); localStorage.setItem('sitelog_v2', JSON.stringify(reports)); renderRecords(); showToast('Deleted'); } }
+
+function initMonthlyFilters() {
+  const months = [...new Set(reports.map(r => ym(r.date)))].sort().reverse();
+  const mSel = document.getElementById('filter-month');
+  mSel.innerHTML = months.length ? months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('') : '<option value="">No logs found</option>';
+
+  const conts = [...new Set(reports.map(r => r.contractor))].sort();
+  const cSel = document.getElementById('filter-contractor');
+  cSel.innerHTML = '<option value="">All Contractors</option>' + conts.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  if (months.length > 0) { renderMonthly(); }
+}
+
+function renderMonthly() {
+  const selYM = document.getElementById('filter-month').value;
+  const selC = document.getElementById('filter-contractor').value;
+  if (!selYM || selYM === "No logs found") {
+    document.getElementById('month-empty').style.display = 'block';
+    document.getElementById('month-table-wrap').style.display = 'none';
+    document.getElementById('month-summary-cards').innerHTML = '';
+    document.querySelectorAll('#monthly-actions button').forEach(btn => btn.disabled = true);
+    return;
+  }
+
+  let filtered = reports.filter(r => ym(r.date) === selYM);
+  if (selC) filtered = filtered.filter(r => r.contractor === selC);
+  filtered.sort((a,b) => a.date.localeCompare(b.date));
+
+  // Update contractor filter for selected month
+  const conts = [...new Set(filtered.map(r => r.contractor))].sort();
+  const cSel = document.getElementById('filter-contractor');
+  const currentSel = cSel.value;
+  cSel.innerHTML = '<option value="">All Contractors</option>' + conts.map(c => `<option value="${c}" ${c === currentSel && conts.includes(c) ? 'selected' : ''}>${c}</option>`).join('');
+  if (!conts.includes(currentSel) && currentSel) {
+    cSel.value = '';
+  }
+
+  const wrap = document.getElementById('month-table-wrap');
+  const empty = document.getElementById('month-empty');
+  const summary = document.getElementById('month-summary-cards');
+  const actions = document.getElementById('monthly-actions');
+
+  if (!filtered.length) { 
+    wrap.style.display = 'none'; 
+    empty.style.display = 'block'; 
+    summary.innerHTML = ''; 
+    document.querySelectorAll('#monthly-actions button').forEach(btn => btn.disabled = true);
+    return; 
+  }
+  wrap.style.display = 'block'; 
+  empty.style.display = 'none'; 
+  document.querySelectorAll('#monthly-actions button').forEach(btn => btn.disabled = false);
+
+  const allKeys = []; const keyMeta = {};
+  filtered.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
+
+  document.getElementById('month-thead-row').innerHTML = `<th>Date</th>${allKeys.map(k => `<th>${keyMeta[k]}</th>`).join('')}<th>Total</th>`;
+
+  let totalSpent = 0;
+  document.getElementById('month-tbody').innerHTML = filtered.map(r => {
+    totalSpent += r.grandTotal;
+    return `<tr><td>${formatDate(r.date)}</td>${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return `<td>${w ? w.total.toLocaleString('en-IN') : '0'}</td>`;}).join('')}<td style="font-weight:800; color:var(--primary)">₹${r.grandTotal.toLocaleString('en-IN')}</td></tr>`;
+  }).join('');
+
+  summary.innerHTML = `
+    <div class="card" style="margin-bottom:0; padding:15px; border-top: 4px solid var(--primary); text-align:center"><div style="font-size:10px; font-weight:800; color:var(--text-muted)">ENTRIES</div><div style="font-size:20px; font-weight:900">${filtered.length}</div></div>
+    <div class="card" style="margin-bottom:0; padding:15px; border-top: 4px solid var(--accent); text-align:center"><div style="font-size:10px; font-weight:800; color:var(--text-muted)">GRAND TOTAL</div><div style="font-size:20px; font-weight:900; color:var(--accent)">₹${totalSpent.toLocaleString('en-IN')}</div></div>
+  `;
+}
+
+function exportMonthlyPDF() {
+  const selYM = document.getElementById('filter-month').value;
+  const selC = document.getElementById('filter-contractor').value;
+  let filtered = reports.filter(r => ym(r.date) === selYM);
+  if (selC) filtered = filtered.filter(r => r.contractor === selC);
+  if (!filtered.length) return;
+
+  const allKeys = []; const keyMeta = {};
+  filtered.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
+  const totalSpent = filtered.reduce((s, r) => s + r.grandTotal, 0);
+
+  const html = `<!DOCTYPE html><html><head>
+    <style>
+      @page { size: A4 landscape; margin: 10mm; }
+      body { font-family: 'Calibri', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; margin: 0; padding: 0; background: #fff; line-height: 1.4; }
+      .header-container { border: 3px solid #2563eb; background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%); border-radius: 12px; padding: 25px; text-align: center; margin-bottom: 30px; box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2); }
+      .header-title { color: #1d4ed8; font-weight: 900; font-size: 28px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1.5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+      .header-detail { font-size: 16px; font-weight: 700; margin: 6px 0; text-transform: uppercase; color: #374151; }
+      .header-detail:last-child { color: #f59e0b; font-weight: 800; }
+      table { width: 100%; border-collapse: collapse; box-shadow: 0 6px 12px rgba(0,0,0,0.15); border-radius: 10px; overflow: hidden; margin-top: 20px; }
+      th, td { border: 1.5px solid #d1d5db; padding: 14px 10px; text-align: center; vertical-align: middle; }
+      th { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
+      tr:nth-child(even) { background: #f9fafb; }
+      tr:nth-child(odd) { background: #ffffff; }
+      td { font-size: 13px; font-weight: 600; color: #111827; }
+      .footer-total { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important; color: #92400e; font-weight: 900; font-size: 15px; border-top: 2px solid #f59e0b; }
+      .grand-total-row { background: linear-gradient(135deg, #1e293b 0%, #111827 100%) !important; color: #fbbf24; font-weight: 900; font-size: 18px; border-top: 3px solid #f59e0b; }
+      .amount-cell { color: #2563eb; font-weight: 800; }
+      .serial-cell { font-weight: 700; color: #6b7280; }
+    </style>
+  </head><body>
+    <div class="header-container">
+      <div class="header-title">Monthly Labour Report</div>
+      <div class="header-detail">COMPANY: ${(filtered[0].company || 'NCC LIMITED')}</div>
+      <div class="header-detail">CONTRACTOR: ${(selC || 'ALL CONTRACTORS')}</div>
+      <div class="header-detail">MONTH: ${monthLabel(selYM).toUpperCase()}</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:50px">S.N</th>
+          <th style="width:110px">Date</th>
+          ${allKeys.map(k => `<th>${keyMeta[k]}s</th>`).join('')}
+          <th style="width:130px">Daily Amount (Rs)</th>
+          <th style="width:110px">Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filtered.map((r, i) => `<tr>
+          <td class="serial-cell">${i+1}</td>
+          <td>${formatDate(r.date)}</td>
+          ${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return `<td>${w ? w.total.toLocaleString('en-IN') : '0'}</td>`;}).join('')}
+          <td class="amount-cell">₹${r.grandTotal.toLocaleString('en-IN')}</td>
+          <td></td>
+        </tr>`).join('')}
+        <tr class="footer-total">
+          <td colspan="2">TOTAL</td>
+          ${allKeys.map(k => `<td>${filtered.reduce((s,r)=>{const w=r.workers.find(wk=>wk.key===k); return s+(w?w.total:0);},0).toLocaleString('en-IN')}</td>`).join('')}
+          <td>₹${totalSpent.toLocaleString('en-IN')}</td>
+          <td></td>
+        </tr>
+        <tr class="grand-total-row">
+          <td colspan="${allKeys.length + 2}" style="text-align:right; padding-right:25px; font-size:16px">GRAND TOTAL</td>
+          <td>₹${totalSpent.toLocaleString('en-IN')}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </body></html>`;
+  if (window.Android && window.Android.printHtml) window.Android.printHtml(html);
+}
+
+function exportMonthlyExcel() {
+  const selYM = document.getElementById('filter-month').value;
+  const selC = document.getElementById('filter-contractor').value;
+  let filtered = reports.filter(r => ym(r.date) === selYM);
+  if (selC) filtered = filtered.filter(r => r.contractor === selC);
+  if (!filtered.length) return;
+  const allKeys = []; const keyMeta = {};
+  filtered.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
+  let csv = `COMPANY,${filtered[0].company || 'NCC LIMITED'}\nCONTRACTOR,${selC || 'ALL'}\nMONTH,${monthLabel(selYM)}\n\n`;
+  csv += `S.No,Date,${allKeys.map(k => keyMeta[k]+'s').join(',')},Daily Amount,Remarks\n`;
+  filtered.forEach((r, i) => { csv += `${i+1},${formatDate(r.date)},${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return w?w.total:0;}).join(',')},${r.grandTotal},\n`; });
+  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Monthly_Report_${selYM}`);
+}
+
+function shareWhatsAppPdf(i) {
+  const r = reports[i];
+  const html = `<!DOCTYPE html><html><head>
+    <style>
+      body { font-family: 'Segoe UI', sans-serif; color: #1e293b; padding: 20px; }
+      .box { border: 2.5px solid #2563eb; padding: 20px; border-radius: 12px; background: #f8fafc; text-align: center; margin-bottom: 25px; }
+      .company { color: #2563eb; font-weight: 900; font-size: 22px; text-transform: uppercase; margin-bottom: 8px; }
+      .details { font-size: 14px; font-weight: 700; color: #64748b; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #cbd5e1; padding: 14px; text-align: center; }
+      th { background: #2563eb; color: #ffffff; text-transform: uppercase; font-size: 12px; }
+      td { font-weight: 700; font-size: 14px; }
+      .total-box { margin-top: 25px; background: #0f172a; color: #fbbf24; padding: 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+      .total-val { font-size: 24px; font-weight: 900; }
+    </style>
+  </head><body>
+    <div class="box">
+      <div class="company">${(r.company || 'NCC LIMITED')}</div>
+      <div class="details">CONTRACTOR: ${r.contractor.toUpperCase()}</div>
+      <div class="details">DATE: ${formatDate(r.date)}</div>
+    </div>
+    <table>
+      <thead><tr><th>Labour Category</th><th>Count</th><th>Rate</th><th>Total</th></tr></thead>
+      <tbody>
+        ${r.workers.map(w => `<tr><td style="text-align:left">${w.icon} ${w.label}</td><td>${w.count}</td><td>₹${w.rate}</td><td style="color:#2563eb">₹${w.total.toLocaleString('en-IN')}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="total-box">
+      <span style="font-weight:800; font-size:16px">GRAND TOTAL</span>
+      <span class="total-val">₹${r.grandTotal.toLocaleString('en-IN')}</span>
+    </div>
+  </body></html>`;
+  if (window.Android && window.Android.shareAsPdf) window.Android.shareAsPdf(html, `Report_${r.date}`);
+}
+
+function exportPDF(i) { shareWhatsAppPdf(i); }
+
+function renderDashboard() {
+  const total = reports.reduce((s, r) => s + r.grandTotal, 0);
+  document.getElementById('stat-total').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('stat-count').textContent = reports.length;
+  const byC = {}; reports.forEach(r => { byC[r.contractor] = (byC[r.contractor] || 0) + r.grandTotal; });
+  document.getElementById('contractor-summary').innerHTML = Object.entries(byC).sort((a,b) => b[1] - a[1]).map(([name, sum]) => `
+    <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; margin-bottom:10px">
+      <span style="font-weight:700; font-size:15px">${name}</span>
+      <span style="font-weight:800; color:var(--primary)">₹${sum.toLocaleString('en-IN')}</span>
+    </div>`).join('');
+}
+
+function today() { return new Date().toISOString().split('T')[0]; }
+function formatDate(d) { if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+function save() { localStorage.setItem('sitelog_v2', JSON.stringify(reports)); }
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function confirmCustom() { const name = document.getElementById('custom-name').value.trim(); const icon = document.getElementById('custom-icon').value.trim() || '👤'; if (name) { addWorker('custom_'+Date.now(), name, icon); closeModal('custom-modal'); } }
+</script>
+</body>
+</html>

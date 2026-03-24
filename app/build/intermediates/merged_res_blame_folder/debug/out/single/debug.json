@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "com.sitelog.labourapp-merged_res-20:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.sitelog.labourapp-main-22:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.sitelog.labourapp-merged_res-20:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.sitelog.labourapp-main-22:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.sitelog.labourapp-merged_res-20:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.sitelog.labourapp-main-22:/drawable/ic_launcher_foreground.xml"
+    }
+]
