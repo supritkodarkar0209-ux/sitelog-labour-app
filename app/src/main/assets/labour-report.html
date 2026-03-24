@@ -148,7 +148,6 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
   </div>
 
   <div id="worker-cards"></div>
-  <button class="btn btn-secondary btn-add-custom" style="border-style:dashed" onclick="openCustomModal()">+ ADD OTHER CATEGORY</button>
 
   <div class="totals-card">
     <div id="live-totals-list"></div>
@@ -164,6 +163,10 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 
 <!-- RECORDS PAGE -->
 <div class="page" id="page-records">
+  <div style="display:flex; gap:10px; margin-bottom:20px">
+    <button class="btn btn-primary" onclick="exportAllPDF()">📄 EXPORT ALL PDF</button>
+    <button class="btn btn-secondary" onclick="exportAllExcel()">📊 EXPORT ALL EXCEL</button>
+  </div>
   <div id="records-list"></div>
 </div>
 
@@ -173,6 +176,10 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
     <div class="field">
       <label>Select Month</label>
       <select id="filter-month" onchange="renderMonthly()"></select>
+    </div>
+    <div class="field">
+      <label>Select Date (Optional)</label>
+      <input type="date" id="filter-date" onchange="renderMonthly()">
     </div>
     <div class="field" style="margin-bottom:0">
       <label>Select Contractor</label>
@@ -218,40 +225,12 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
   <div id="contractor-summary"></div>
 </div>
 
-<!-- EDIT MODAL -->
-<div class="modal-overlay" id="edit-modal">
-  <div class="modal">
-    <div class="modal-title">Edit Daily Entry</div>
-    <div class="field"><label>Company</label><input type="text" id="edit-company"></div>
-    <div class="field"><label>Contractor</label><input type="text" id="edit-contractor"></div>
-    <div class="field"><label>Date</label><input type="date" id="edit-date"></div>
-    <div id="edit-worker-cards" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; padding: 10px"></div>
-    <div class="grand-row" style="background:var(--primary-light); color:var(--primary); border:1px solid #bfdbfe; margin-bottom:20px; padding: 15px; border-radius: 12px">
-      <span style="font-weight:800; font-size:14px">UPDATED TOTAL:</span>
-      <span id="edit-grand" style="font-weight:900; font-size:22px">₹0</span>
-    </div>
-    <button class="btn btn-primary" onclick="saveEdit()">UPDATE LOG</button>
-    <button class="btn btn-secondary" onclick="closeModal('edit-modal')">CANCEL</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="custom-modal">
-  <div class="modal">
-    <div class="modal-title">New work category</div>
-    <div class="field"><label>Name</label><input type="text" id="custom-name" placeholder="e.g. Painter"></div>
-    <div class="field"><label>Icon (emoji)</label><input type="text" id="custom-icon" placeholder="👤" maxlength="2" style="text-align:center; font-size:20px"></div>
-    <button class="btn btn-primary" onclick="confirmCustom()">ADD CATEGORY</button>
-    <button class="btn btn-secondary" onclick="closeModal('custom-modal')">CANCEL</button>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
 let reports = JSON.parse(localStorage.getItem('sitelog_v2') || '[]');
 let savedCompanies = JSON.parse(localStorage.getItem('sl_companies') || '["NCC LIMITED"]');
 let savedContractors = JSON.parse(localStorage.getItem('sl_contractors') || '[]');
-let editIndex = -1;
 let formWorkers = [];
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -375,46 +354,11 @@ function renderRecords() {
       </div>
       <div class="record-workers">${r.workers.map(w => `<span class="worker-pill">${w.label}: ${w.count}</span>`).join('')}</div>
       <div style="display:flex; gap:10px; margin-top:15px">
-        <button class="btn-sm btn-edit" style="flex:1" onclick="editReport(${i})">Edit</button>
-        <button class="btn-sm btn-wa" style="flex:1" onclick="shareWhatsAppPdf(${i})">WhatsApp</button>
+        <button class="btn-sm btn-pdf" style="flex:1" onclick="exportPDF(${i})">📄 PDF</button>
+        <button class="btn-sm btn-excel" style="flex:1" onclick="exportExcel(${i})">📊 Excel</button>
         <button class="btn-sm btn-delete" style="flex:1" onclick="deleteReport(${i})">Delete</button>
       </div>
     </div>`).join('');
-}
-
-function editReport(i) {
-  editIndex = i; const r = reports[i];
-  document.getElementById('edit-company').value = r.company || '';
-  document.getElementById('edit-contractor').value = r.contractor;
-  document.getElementById('edit-date').value = r.date;
-  document.getElementById('edit-worker-cards').innerHTML = r.workers.map((w, wi) => `
-    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:12px">
-      <div style="font-weight:800; font-size:14px; margin-bottom:10px; color:var(--primary)">${w.icon} ${w.label}</div>
-      <div style="display:flex; gap:12px">
-        <div style="flex:1"><label style="font-size:10px">Count</label><input type="number" class="edit-cnt" data-idx="${wi}" value="${w.count}"></div>
-        <div style="flex:1"><label style="font-size:10px">Rate (₹)</label><input type="number" class="edit-rt" data-idx="${wi}" value="${w.rate}"></div>
-      </div>
-    </div>`).join('');
-  document.querySelectorAll('#edit-worker-cards input').forEach(input => input.oninput = calcEditTotal);
-  calcEditTotal(); document.getElementById('edit-modal').classList.add('show');
-}
-
-function calcEditTotal() {
-  let total = 0; const cnts = document.querySelectorAll('.edit-cnt'); const rts = document.querySelectorAll('.edit-rt');
-  cnts.forEach((c, idx) => { total += (+c.value || 0) * (+rts[idx].value || 0); });
-  document.getElementById('edit-grand').textContent = '₹' + total.toLocaleString('en-IN');
-}
-
-function saveEdit() {
-  const r = reports[editIndex];
-  r.company = document.getElementById('edit-company').value.trim();
-  r.contractor = document.getElementById('edit-contractor').value.trim();
-  r.date = document.getElementById('edit-date').value;
-  const cnts = document.querySelectorAll('.edit-cnt'); const rts = document.querySelectorAll('.edit-rt');
-  r.workers.forEach((w, idx) => { w.count = +cnts[idx].value || 0; w.rate = +rts[idx].value || 0; w.total = w.count * w.rate; });
-  r.grandTotal = r.workers.reduce((s, w) => s + w.total, 0);
-  localStorage.setItem('sitelog_v2', JSON.stringify(reports));
-  closeModal('edit-modal'); renderRecords(); showToast('Log Updated');
 }
 
 function deleteReport(i) { if (confirm('Delete this record?')) { reports.splice(i, 1); localStorage.setItem('sitelog_v2', JSON.stringify(reports)); renderRecords(); showToast('Deleted'); } }
@@ -433,6 +377,7 @@ function initMonthlyFilters() {
 
 function renderMonthly() {
   const selYM = document.getElementById('filter-month').value;
+  const selDate = document.getElementById('filter-date').value;
   const selC = document.getElementById('filter-contractor').value;
   if (!selYM || selYM === "No logs found") {
     document.getElementById('month-empty').style.display = 'block';
@@ -443,6 +388,7 @@ function renderMonthly() {
   }
 
   let filtered = reports.filter(r => ym(r.date) === selYM);
+  if (selDate) filtered = filtered.filter(r => r.date === selDate);
   if (selC) filtered = filtered.filter(r => r.contractor === selC);
   filtered.sort((a,b) => a.date.localeCompare(b.date));
 
@@ -490,8 +436,10 @@ function renderMonthly() {
 
 function exportMonthlyPDF() {
   const selYM = document.getElementById('filter-month').value;
+  const selDate = document.getElementById('filter-date').value;
   const selC = document.getElementById('filter-contractor').value;
   let filtered = reports.filter(r => ym(r.date) === selYM);
+  if (selDate) filtered = filtered.filter(r => r.date === selDate);
   if (selC) filtered = filtered.filter(r => r.contractor === selC);
   if (!filtered.length) return;
 
@@ -524,6 +472,7 @@ function exportMonthlyPDF() {
       <div class="header-detail">COMPANY: ${(filtered[0].company || 'NCC LIMITED')}</div>
       <div class="header-detail">CONTRACTOR: ${(selC || 'ALL CONTRACTORS')}</div>
       <div class="header-detail">MONTH: ${monthLabel(selYM).toUpperCase()}</div>
+      ${selDate ? `<div class="header-detail">DATE: ${formatDate(selDate)}</div>` : ''}
     </div>
     <table>
       <thead>
@@ -562,14 +511,17 @@ function exportMonthlyPDF() {
 
 function exportMonthlyExcel() {
   const selYM = document.getElementById('filter-month').value;
+  const selDate = document.getElementById('filter-date').value;
   const selC = document.getElementById('filter-contractor').value;
   let filtered = reports.filter(r => ym(r.date) === selYM);
+  if (selDate) filtered = filtered.filter(r => r.date === selDate);
   if (selC) filtered = filtered.filter(r => r.contractor === selC);
   if (!filtered.length) return;
   const allKeys = []; const keyMeta = {};
   filtered.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
-  let csv = `COMPANY,${filtered[0].company || 'NCC LIMITED'}\nCONTRACTOR,${selC || 'ALL'}\nMONTH,${monthLabel(selYM)}\n\n`;
-  csv += `S.No,Date,${allKeys.map(k => keyMeta[k]+'s').join(',')},Daily Amount,Remarks\n`;
+  let csv = `COMPANY,${filtered[0].company || 'NCC LIMITED'}\nCONTRACTOR,${selC || 'ALL'}\nMONTH,${monthLabel(selYM)}\n`;
+  if (selDate) csv += `DATE,${formatDate(selDate)}\n`;
+  csv += `\nS.No,Date,${allKeys.map(k => keyMeta[k]+'s').join(',')},Daily Amount,Remarks\n`;
   filtered.forEach((r, i) => { csv += `${i+1},${formatDate(r.date)},${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return w?w.total:0;}).join(',')},${r.grandTotal},\n`; });
   if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Monthly_Report_${selYM}`);
 }
@@ -609,7 +561,93 @@ function shareWhatsAppPdf(i) {
   if (window.Android && window.Android.shareAsPdf) window.Android.shareAsPdf(html, `Report_${r.date}`);
 }
 
-function exportPDF(i) { shareWhatsAppPdf(i); }
+function exportAllPDF() {
+  if (!reports.length) return;
+  const allKeys = []; const keyMeta = {};
+  reports.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
+  const totalSpent = reports.reduce((s, r) => s + r.grandTotal, 0);
+
+  const html = `<!DOCTYPE html><html><head>
+    <style>
+      @page { size: A4 landscape; margin: 10mm; }
+      body { font-family: 'Calibri', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; margin: 0; padding: 0; background: #fff; line-height: 1.4; }
+      .header-container { border: 3px solid #2563eb; background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%); border-radius: 12px; padding: 25px; text-align: center; margin-bottom: 30px; box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2); }
+      .header-title { color: #1d4ed8; font-weight: 900; font-size: 28px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1.5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+      .header-detail { font-size: 16px; font-weight: 700; margin: 6px 0; text-transform: uppercase; color: #374151; }
+      table { width: 100%; border-collapse: collapse; box-shadow: 0 6px 12px rgba(0,0,0,0.15); border-radius: 10px; overflow: hidden; margin-top: 20px; }
+      th, td { border: 1.5px solid #d1d5db; padding: 14px 10px; text-align: center; vertical-align: middle; }
+      th { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
+      tr:nth-child(even) { background: #f9fafb; }
+      tr:nth-child(odd) { background: #ffffff; }
+      td { font-size: 13px; font-weight: 600; color: #111827; }
+      .footer-total { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important; color: #92400e; font-weight: 900; font-size: 15px; border-top: 2px solid #f59e0b; }
+      .grand-total-row { background: linear-gradient(135deg, #1e293b 0%, #111827 100%) !important; color: #fbbf24; font-weight: 900; font-size: 18px; border-top: 3px solid #f59e0b; }
+      .amount-cell { color: #2563eb; font-weight: 800; }
+      .serial-cell { font-weight: 700; color: #6b7280; }
+    </style>
+  </head><body>
+    <div class="header-container">
+      <div class="header-title">All Labour Reports</div>
+      <div class="header-detail">TOTAL ENTRIES: ${reports.length}</div>
+      <div class="header-detail">GRAND TOTAL: ₹${totalSpent.toLocaleString('en-IN')}</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:50px">S.N</th>
+          <th style="width:110px">Date</th>
+          <th style="width:120px">Contractor</th>
+          ${allKeys.map(k => `<th>${keyMeta[k]}s</th>`).join('')}
+          <th style="width:130px">Daily Amount (Rs)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${reports.map((r, i) => `<tr>
+          <td class="serial-cell">${i+1}</td>
+          <td>${formatDate(r.date)}</td>
+          <td>${r.contractor}</td>
+          ${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return `<td>${w ? w.total.toLocaleString('en-IN') : '0'}</td>`;}).join('')}
+          <td class="amount-cell">₹${r.grandTotal.toLocaleString('en-IN')}</td>
+        </tr>`).join('')}
+        <tr class="grand-total-row">
+          <td colspan="${allKeys.length + 3}" style="text-align:right; padding-right:25px; font-size:16px">GRAND TOTAL</td>
+          <td>₹${totalSpent.toLocaleString('en-IN')}</td>
+        </tr>
+      </tbody>
+    </table>
+  </body></html>`;
+  if (window.Android && window.Android.printHtml) window.Android.printHtml(html);
+}
+
+function exportAllExcel() {
+  if (!reports.length) return;
+  const allKeys = []; const keyMeta = {};
+  reports.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
+  let csv = `ALL LABOUR REPORTS\nTOTAL ENTRIES,${reports.length}\n\nS.No,Date,Contractor,${allKeys.map(k => keyMeta[k]+'s').join(',')},Daily Amount\n`;
+  reports.forEach((r, i) => { csv += `${i+1},${formatDate(r.date)},${r.contractor},${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return w?w.total:0;}).join(',')},${r.grandTotal}\n`; });
+  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, 'All_Reports');
+}
+
+function exportExcel(i) {
+  const r = reports[i];
+  const allKeys = []; const keyMeta = {};
+  r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } });
+  let csv = `COMPANY,${r.company || 'NCC LIMITED'}\nCONTRACTOR,${r.contractor}\nDATE,${formatDate(r.date)}\n\nLabour Category,Count,Rate,Total\n`;
+  r.workers.forEach(w => { csv += `${w.label},${w.count},${w.rate},${w.total}\n`; });
+  csv += `\nGRAND TOTAL,,${r.grandTotal}\n`;
+  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Report_${r.date}`);
+}
+
+function exportContractorExcel(name) {
+  const contractorReports = reports.filter(r => r.contractor === name);
+  if (!contractorReports.length) return;
+  const allKeys = []; const keyMeta = {};
+  contractorReports.forEach(r => r.workers.forEach(w => { if(!keyMeta[w.key]) { keyMeta[w.key] = w.label; allKeys.push(w.key); } }));
+  const total = contractorReports.reduce((s, r) => s + r.grandTotal, 0);
+  let csv = `CONTRACTOR,${name}\nTOTAL ENTRIES,${contractorReports.length}\nGRAND TOTAL,${total}\n\nS.No,Date,${allKeys.map(k => keyMeta[k]+'s').join(',')},Daily Amount\n`;
+  contractorReports.forEach((r, i) => { csv += `${i+1},${formatDate(r.date)},${allKeys.map(k => {const w=r.workers.find(wk=>wk.key===k); return w?w.total:0;}).join(',')},${r.grandTotal}\n`; });
+  if (window.Android && window.Android.shareAsCsv) window.Android.shareAsCsv(csv, `Contractor_${name}`);
+}
 
 function renderDashboard() {
   const total = reports.reduce((s, r) => s + r.grandTotal, 0);
@@ -617,7 +655,7 @@ function renderDashboard() {
   document.getElementById('stat-count').textContent = reports.length;
   const byC = {}; reports.forEach(r => { byC[r.contractor] = (byC[r.contractor] || 0) + r.grandTotal; });
   document.getElementById('contractor-summary').innerHTML = Object.entries(byC).sort((a,b) => b[1] - a[1]).map(([name, sum]) => `
-    <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; margin-bottom:10px">
+    <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; margin-bottom:10px; cursor:pointer" onclick="exportContractorExcel('${name}')">
       <span style="font-weight:700; font-size:15px">${name}</span>
       <span style="font-weight:800; color:var(--primary)">₹${sum.toLocaleString('en-IN')}</span>
     </div>`).join('');
@@ -630,8 +668,6 @@ function showToast(msg) {
   const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-function confirmCustom() { const name = document.getElementById('custom-name').value.trim(); const icon = document.getElementById('custom-icon').value.trim() || '👤'; if (name) { addWorker('custom_'+Date.now(), name, icon); closeModal('custom-modal'); } }
 </script>
 </body>
 </html>
