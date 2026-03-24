@@ -30,6 +30,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 
 .section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 22px 0 10px; }
 .section-title:first-child { margin-top: 2px; }
+#form-mode { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
 
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
 
@@ -204,6 +205,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacit
 <!-- ═══ FORM PAGE ═══ -->
 <div class="page active" id="page-form">
 
+  <div id="form-mode" style="margin-bottom: 10px; font-size: 12px; font-weight: 700; color: var(--accent);">Mode: New Entry</div>
   <p class="section-title">Site Details</p>
   <div class="card">
     <div class="field">
@@ -251,6 +253,10 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacit
 
   <button class="btn btn-primary" onclick="saveReport()">💾 Save Report</button>
   <button class="btn btn-secondary" onclick="resetForm()">↺ Reset All</button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+    <button class="btn-month-pdf" onclick="exportMonthlyPDF()">📄 Export Monthly PDF (From Form)</button>
+    <button class="btn-month-excel" onclick="exportMonthlyExcel()">📊 Export Monthly XLSX (From Form)</button>
+  </div>
 </div>
 
 <!-- ═══ RECORDS PAGE ═══ -->
@@ -278,14 +284,6 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacit
   <div id="month-empty" class="empty-state" style="display:none">
     <div class="empty-icon">📅</div>
     <div class="empty-text">No records for selected period.</div>
-  </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;">
-    <button class="btn-month-pdf" id="month-pdf-btn" onclick="exportMonthlyPDF()" style="display:none">
-      📄 Export Monthly PDF Report
-    </button>
-    <button class="btn-month-excel" id="month-excel-btn" onclick="exportMonthlyExcel()" style="display:none">
-      📊 Export Monthly Excel (CSV)
-    </button>
   </div>
 </div>
 
@@ -520,16 +518,29 @@ function saveReport() {
     count: w.count, rate: w.rate, total: w.count * w.rate
   }));
   const grandTotal = workers.reduce((s, w) => s + w.total, 0);
-  reports.unshift({
-    id: Date.now(),
+  const reportData = {
+    id: editIndex !== -1 ? reports[editIndex].id : Date.now(),
     contractor: document.getElementById('contractor').value.trim(),
     date: document.getElementById('date').value,
     workers, grandTotal
-  });
-  save(); showToast('✅ Report saved!'); resetForm();
+  };
+
+  if (editIndex !== -1) {
+    reports[editIndex] = reportData;
+    showToast('✅ Report updated!');
+  } else {
+    reports.unshift(reportData);
+    showToast('✅ Report saved!');
+  }
+
+  save();
+  resetForm();
 }
 
+
 function resetForm() {
+  editIndex = -1;
+  updateFormMode();
   document.getElementById('contractor').value = '';
   document.getElementById('date').value = today();
   document.getElementById('err-contractor').classList.remove('show');
@@ -537,6 +548,30 @@ function resetForm() {
   formWorkers = [];
   addWorker('mason', 'Mason', '🧱');
   addWorker('helper', 'Helper', '👷');
+}
+
+function updateFormMode() {
+  const mode = editIndex === -1 ? 'New Entry' : 'Edit Entry';
+  document.getElementById('form-mode').textContent = 'Mode: ' + mode;
+}
+
+function loadReportToForm(i) {
+  const r = reports[i];
+  editIndex = i;
+  updateFormMode();
+  document.getElementById('contractor').value = r.contractor;
+  document.getElementById('date').value = r.date;
+  formWorkers = r.workers.map(w => ({ ...w }));
+  renderWorkerCards();
+  calcTotals();
+  switchToForm();
+}
+
+function switchToForm() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-form').classList.add('active');
+  document.querySelector('.tab').classList.add('active');
 }
 
 // ─────────────────────────────────────────────────────
@@ -547,6 +582,7 @@ function showPage(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   el.classList.add('active');
+  if (name === 'form') updateFormMode();
   if (name === 'records') renderRecords();
   if (name === 'dashboard') renderDashboard();
   if (name === 'monthly') initMonthlyFilters();
@@ -575,9 +611,7 @@ function renderRecords() {
       </div>
       <div class="record-workers">${pills}</div>
       <div class="record-actions">
-        <button class="btn-sm btn-edit"   onclick="editReport(${i})">✏️ Edit</button>
-        <button class="btn-sm btn-share"  onclick="shareWhatsApp(${i})">📲 WA</button>
-        <button class="btn-sm btn-pdf"    onclick="exportPDF(${i})">📄 PDF</button>
+        <button class="btn-sm btn-edit" onclick="loadReportToForm(${i})">✏️ Load in New Entry</button>
         <button class="btn-sm btn-delete" onclick="deleteReport(${i})">🗑 Del</button>
       </div>
     </div>`;
@@ -694,21 +728,23 @@ function renderMonthly() {
   if (selC) rows = rows.filter(r => r.contractor === selC);
   rows.sort((a, b) => a.date.localeCompare(b.date));
 
-  const tbody     = document.getElementById('month-tbody');
-  const thead     = document.getElementById('month-thead-row');
-  const empty     = document.getElementById('month-empty');
-  const pdfBtn    = document.getElementById('month-pdf-btn');
-  const excelBtn  = document.getElementById('month-excel-btn');
-  const wrap      = document.getElementById('month-table-wrap');
-  const cards     = document.getElementById('month-summary-cards');
+  const tbody = document.getElementById('month-tbody');
+  const thead = document.getElementById('month-thead-row');
+  const empty = document.getElementById('month-empty');
+  const wrap  = document.getElementById('month-table-wrap');
+  const cards = document.getElementById('month-summary-cards');
 
   if (!rows.length || !selYM) {
-    tbody.innerHTML = ''; thead.innerHTML = '';
-    empty.style.display = 'block'; pdfBtn.style.display = 'none'; excelBtn.style.display = 'none';
-    wrap.style.display = 'none'; cards.innerHTML = ''; return;
+    tbody.innerHTML = '';
+    thead.innerHTML = '';
+    empty.style.display = 'block';
+    wrap.style.display = 'none';
+    cards.innerHTML = '';
+    return;
   }
 
-  empty.style.display = 'none'; pdfBtn.style.display = 'block'; excelBtn.style.display = 'block'; wrap.style.display = 'block';
+  empty.style.display = 'none';
+  wrap.style.display = 'block';
 
   // Collect all unique worker types across filtered rows
   const allKeys = [];
@@ -900,6 +936,16 @@ function exportMonthlyExcel() {
     if (!keyMeta[w.key]) { keyMeta[w.key] = { label: w.label, icon: w.icon }; allKeys.push(w.key); }
   }));
 
+  const keyTotals = {};
+  allKeys.forEach(k => keyTotals[k] = 0);
+  const totalSpent = rows.reduce((s, r) => s + r.grandTotal, 0);
+
+  rows.forEach(r => {
+    r.workers.forEach(w => {
+      if (keyTotals[w.key] !== undefined) keyTotals[w.key] += w.total;
+    });
+  });
+
   const header = ['Sr.', 'Date', 'Contractor', ...allKeys.map(k => keyMeta[k].label), 'Grand Total'];
   const data = rows.map((r, i) => {
     const rowWorkers = allKeys.map(k => {
@@ -909,8 +955,50 @@ function exportMonthlyExcel() {
     return [i+1, formatDate(r.date), r.contractor, ...rowWorkers, r.grandTotal];
   });
 
-  const worksheetData = [header, ...data];
+  const totalsRow = ['Total', '', '', ...allKeys.map(k => keyTotals[k]), totalSpent];
+  const worksheetData = [header, ...data, totalsRow];
   const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+  // Apply formatting to header & totals
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const headerCell = XLSX.utils.encode_cell({ r: 0, c: C });
+    if (worksheet[headerCell]) {
+      worksheet[headerCell].s = {
+        font: { bold: true, color: { rgb: 'FFFFFFFF' } },
+        fill: { fgColor: { rgb: 'FF1A1A2F' } },
+        alignment: { horizontal: 'center', vertical: 'center' }
+      };
+    }
+  }
+
+  // Add a totals row style
+  const totalRow = data.length + 1;
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const totalCell = XLSX.utils.encode_cell({ r: totalRow, c: C });
+    if (!worksheet[totalCell]) continue;
+    worksheet[totalCell].s = {
+      font: { bold: true, color: { rgb: 'FF000000' } },
+      fill: { fgColor: { rgb: 'FFFFF3CC' } },
+      border: {
+        top: { style: 'thin', color: { rgb: 'FF999999' } },
+        bottom: { style: 'thin', color: { rgb: 'FF999999' } }
+      },
+      alignment: { horizontal: C > 2 ? 'right' : 'left', vertical: 'center' }
+    };
+  }
+
+  // Currency formatting for amount columns
+  for (let r = 1; r <= data.length; ++r) {
+    for (let c = 3; c <= range.e.c; ++c) {
+      const cell = XLSX.utils.encode_cell({ r, c });
+      if (worksheet[cell] && (typeof worksheet[cell].v === 'number' || !isNaN(worksheet[cell].v))) {
+        worksheet[cell].t = 'n';
+        worksheet[cell].z = '₹#,##0.00';
+      }
+    }
+  }
+
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Monthly Report');
 
