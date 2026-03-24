@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>SiteLog — Daily Labour Report</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -121,8 +122,10 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacit
 .btn-delete { background: transparent; color: var(--red); border: 1px solid var(--red) !important; }
 .btn-share { background: #25D366; color: #fff; }
 .btn-pdf { background: var(--surface); color: var(--text); border: 1px solid var(--border) !important; }
-.btn-month-pdf { background: var(--accent); color: #1a1000; border: none; width: 100%; padding: 14px; font-size: 15px; font-weight: 700; border-radius: 12px; cursor: pointer; font-family: 'Barlow', sans-serif; }
-.btn-month-pdf:active { transform: scale(0.98); }
+.btn-month-pdf, .btn-month-excel { width: 100%; padding: 14px; font-size: 15px; font-weight: 700; border-radius: 12px; cursor: pointer; font-family: 'Barlow', sans-serif; border: none; }
+.btn-month-pdf { background: var(--accent); color: #1a1000; }
+.btn-month-excel { background: #22c55e; color: #fff; }
+.btn-month-pdf:active, .btn-month-excel:active { transform: scale(0.98); }
 
 /* RECORDS */
 .record-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
@@ -276,9 +279,14 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacit
     <div class="empty-icon">📅</div>
     <div class="empty-text">No records for selected period.</div>
   </div>
-  <button class="btn-month-pdf" id="month-pdf-btn" onclick="exportMonthlyPDF()" style="display:none">
-    📄 Export Monthly PDF Report
-  </button>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <button class="btn-month-pdf" id="month-pdf-btn" onclick="exportMonthlyPDF()" style="display:none">
+      📄 Export Monthly PDF Report
+    </button>
+    <button class="btn-month-excel" id="month-excel-btn" onclick="exportMonthlyExcel()" style="display:none">
+      📊 Export Monthly Excel (CSV)
+    </button>
+  </div>
 </div>
 
 <!-- ═══ DASHBOARD PAGE ═══ -->
@@ -662,7 +670,11 @@ function initMonthlyFilters() {
   mSel.innerHTML = months.length
     ? months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('')
     : '<option value="">No data yet</option>';
-  if (months.includes(prev)) mSel.value = prev;
+  if (months.includes(prev)) {
+    mSel.value = prev;
+  } else if (months.length) {
+    mSel.value = months[0];
+  }
 
   const contractors = [...new Set(reports.map(r => r.contractor))].sort();
   const cSel = document.getElementById('filter-contractor');
@@ -682,20 +694,21 @@ function renderMonthly() {
   if (selC) rows = rows.filter(r => r.contractor === selC);
   rows.sort((a, b) => a.date.localeCompare(b.date));
 
-  const tbody  = document.getElementById('month-tbody');
-  const thead  = document.getElementById('month-thead-row');
-  const empty  = document.getElementById('month-empty');
-  const pdfBtn = document.getElementById('month-pdf-btn');
-  const wrap   = document.getElementById('month-table-wrap');
-  const cards  = document.getElementById('month-summary-cards');
+  const tbody     = document.getElementById('month-tbody');
+  const thead     = document.getElementById('month-thead-row');
+  const empty     = document.getElementById('month-empty');
+  const pdfBtn    = document.getElementById('month-pdf-btn');
+  const excelBtn  = document.getElementById('month-excel-btn');
+  const wrap      = document.getElementById('month-table-wrap');
+  const cards     = document.getElementById('month-summary-cards');
 
   if (!rows.length || !selYM) {
     tbody.innerHTML = ''; thead.innerHTML = '';
-    empty.style.display = 'block'; pdfBtn.style.display = 'none';
+    empty.style.display = 'block'; pdfBtn.style.display = 'none'; excelBtn.style.display = 'none';
     wrap.style.display = 'none'; cards.innerHTML = ''; return;
   }
 
-  empty.style.display = 'none'; pdfBtn.style.display = 'block'; wrap.style.display = 'block';
+  empty.style.display = 'none'; pdfBtn.style.display = 'block'; excelBtn.style.display = 'block'; wrap.style.display = 'block';
 
   // Collect all unique worker types across filtered rows
   const allKeys = [];
@@ -871,6 +884,39 @@ function exportMonthlyPDF() {
 </body></html>`);
   win.document.close();
   setTimeout(() => win.print(), 400);
+}
+
+function exportMonthlyExcel() {
+  const selYM = document.getElementById('filter-month').value;
+  const selC  = document.getElementById('filter-contractor').value;
+  let rows = reports.filter(r => ym(r.date) === selYM);
+  if (selC) rows = rows.filter(r => r.contractor === selC);
+  rows.sort((a, b) => a.date.localeCompare(b.date));
+  if (!rows.length) return;
+
+  const allKeys = [];
+  const keyMeta = {};
+  rows.forEach(r => r.workers.forEach(w => {
+    if (!keyMeta[w.key]) { keyMeta[w.key] = { label: w.label, icon: w.icon }; allKeys.push(w.key); }
+  }));
+
+  const header = ['Sr.', 'Date', 'Contractor', ...allKeys.map(k => keyMeta[k].label), 'Grand Total'];
+  const data = rows.map((r, i) => {
+    const rowWorkers = allKeys.map(k => {
+      const w = r.workers.find(w => w.key === k);
+      return w ? w.total : 0;
+    });
+    return [i+1, formatDate(r.date), r.contractor, ...rowWorkers, r.grandTotal];
+  });
+
+  const worksheetData = [header, ...data];
+  const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Monthly Report');
+
+  const fileName = `SiteLog-Monthly-Report-${selYM}${selC ? '-' + selC.replace(/\s+/g, '_') : ''}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
+  showToast('✅ Monthly Excel file exported successfully');
 }
 
 // ─────────────────────────────────────────────────────
