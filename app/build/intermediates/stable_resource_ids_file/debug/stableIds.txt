@@ -1276,6 +1276,7 @@ com.sitelog.labourapp:styleable/MenuItem = 0x7f0f0020
 com.sitelog.labourapp:id/view_tree_on_back_pressed_dispatcher_owner = 0x7f0800ad
 com.sitelog.labourapp:id/custom = 0x7f080049
 com.sitelog.labourapp:anim/btn_checkbox_to_unchecked_box_inner_merged_animation = 0x7f01000f
+com.sitelog.labourapp:xml/file_paths = 0x7f100000
 com.sitelog.labourapp:anim/btn_radio_to_on_mtrl_ring_outer_animation = 0x7f010016
 com.sitelog.labourapp:drawable/abc_list_pressed_holo_dark = 0x7f070028
 com.sitelog.labourapp:attr/contentInsetEnd = 0x7f03005d

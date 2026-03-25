@@ -88,7 +88,10 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 .record-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
 .record-company { font-size: 11px; font-weight: 800; color: var(--primary); background: var(--primary-light); padding: 3px 10px; border-radius: 6px; display: inline-block; margin-bottom: 6px; text-transform: uppercase; }
 .record-name { font-weight: 800; font-size: 17px; color: var(--text-main); }
+.record-date { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 .record-total { color: var(--accent); font-weight: 900; font-size: 18px; }
+.record-workers { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.worker-pill { display: inline-block; padding: 6px 12px; background: #f1f5f9; color: #475569; border-radius: 20px; font-size: 12px; font-weight: 600; }
 
 /* MONTHLY TABLE */
 .month-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
@@ -164,6 +167,44 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 
 <!-- RECORDS PAGE -->
 <div class="page" id="page-records">
+  <!-- FILTER SECTION -->
+  <div class="card" style="border-left: 5px solid var(--primary); padding: 15px; margin-bottom: 20px">
+    <div style="font-weight: 800; font-size: 13px; color: var(--text-muted); margin-bottom: 15px; text-transform: uppercase">🔍 Filter Logs</div>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px">
+      <div class="field" style="margin-bottom:0">
+        <label>Company</label>
+        <select id="records-filter-company" onchange="applyRecordsFilters()">
+          <option value="">All Companies</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Contractor</label>
+        <select id="records-filter-contractor" onchange="applyRecordsFilters()">
+          <option value="">All Contractors</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px">
+      <div class="field" style="margin-bottom:0">
+        <label>From Date</label>
+        <input type="date" id="records-filter-from-date" onchange="applyRecordsFilters()">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>To Date</label>
+        <input type="date" id="records-filter-to-date" onchange="applyRecordsFilters()">
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:0">
+      <label>Worker Type</label>
+      <div id="records-filter-workers" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px"></div>
+    </div>
+
+    <button class="btn-sm" onclick="clearRecordsFilters()" style="margin-top:12px; background:#fee2e2; color:var(--danger); border-color:var(--danger)">↺ Clear Filters</button>
+  </div>
+
   <div id="records-list"></div>
 </div>
 
@@ -333,15 +374,33 @@ function showPage(name, el) {
   el.classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  if (name === 'records') renderRecords();
+  if (name === 'records') initRecordsFilters();
   if (name === 'dashboard') renderDashboard();
   if (name === 'monthly') initMonthlyFilters();
 }
 
 function renderRecords() {
   const el = document.getElementById('records-list');
-  if (!reports.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><div style="font-weight:600">No logs found</div></div>'; return; }
-  el.innerHTML = reports.map((r, i) => `
+  const company = document.getElementById('records-filter-company').value;
+  const contractor = document.getElementById('records-filter-contractor').value;
+  const fromDate = document.getElementById('records-filter-from-date').value;
+  const toDate = document.getElementById('records-filter-to-date').value;
+  const selectedWorkers = Array.from(document.querySelectorAll('#records-filter-workers input[type="checkbox"]:checked')).map(cb => cb.value);
+
+  let filtered = reports.slice();
+
+  if (company) filtered = filtered.filter(r => (r.company || 'NCC LIMITED') === company);
+  if (contractor) filtered = filtered.filter(r => r.contractor === contractor);
+  if (fromDate && toDate) filtered = filtered.filter(r => r.date >= fromDate && r.date <= toDate);
+  if (selectedWorkers.length > 0) filtered = filtered.filter(r => r.workers.some(w => selectedWorkers.includes(w.key)));
+
+  filtered.sort((a, b) => b.date.localeCompare(a.date));
+
+  if (!filtered.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><div style="font-weight:600">No logs found</div></div>'; return; }
+  
+  el.innerHTML = filtered.map((r, i) => {
+    const originalIndex = reports.findIndex(rpt => rpt.date === r.date && rpt.contractor === r.contractor && rpt.grandTotal === r.grandTotal);
+    return `
     <div class="record-card">
       <div class="record-header">
         <div style="flex:1">
@@ -353,12 +412,55 @@ function renderRecords() {
       </div>
       <div class="record-workers">${r.workers.map(w => `<span class="worker-pill">${w.label}: ${w.count}</span>`).join('')}</div>
       <div style="display:flex; gap:10px; margin-top:15px">
-        <button class="btn-sm btn-pdf" style="flex:1" onclick="exportPDF(${i})">📄 PDF</button>
-        <button class="btn-sm btn-excel" style="flex:1" onclick="exportExcel(${i})">📊 Excel</button>
-        <button class="btn-sm btn-wa" style="flex:1" onclick="shareWhatsAppExcel(${i})">📱 WhatsApp</button>
-        <button class="btn-sm btn-danger" style="flex:1" onclick="deleteReport(${i})">🗑️ Delete</button>
+        <button class="btn-sm btn-pdf" style="flex:1" onclick="exportPDF(${originalIndex})">📄 PDF</button>
+        <button class="btn-sm btn-excel" style="flex:1" onclick="exportExcel(${originalIndex})">📊 Excel</button>
+        <button class="btn-sm btn-wa" style="flex:1" onclick="shareWhatsAppExcel(${originalIndex})">📱 WhatsApp</button>
+        <button class="btn-sm btn-danger" style="flex:1" onclick="deleteReport(${originalIndex})">🗑️ Delete</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+function initRecordsFilters() {
+  const companies = [...new Set(reports.map(r => r.company || 'NCC LIMITED'))].sort();
+  const contractors = [...new Set(reports.map(r => r.contractor))].sort();
+  const workerTypes = [
+    { key: 'mason', label: 'Mason', icon: '🧱' },
+    { key: 'helper', label: 'Helper', icon: '👷' },
+    { key: 'supervisor', label: 'Supervisor', icon: '📋' },
+    { key: 'carpenter', label: 'Carpenter', icon: '🪚' },
+    { key: 'electrician', label: 'Electrician', icon: '⚡' },
+    { key: 'plumber', label: 'Plumber', icon: '🔧' }
+  ];
+
+  const companySel = document.getElementById('records-filter-company');
+  companySel.innerHTML = '<option value="">All Companies</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  const contractorSel = document.getElementById('records-filter-contractor');
+  contractorSel.innerHTML = '<option value="">All Contractors</option>' + contractors.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  const workersDiv = document.getElementById('records-filter-workers');
+  workersDiv.innerHTML = workerTypes.map(w => `
+    <label style="display:flex; align-items:center; gap:6px; padding:8px 12px; border:1.5px solid var(--border); border-radius:8px; cursor:pointer; transition:0.2s; font-size:13px; font-weight:600">
+      <input type="checkbox" value="${w.key}" onchange="applyRecordsFilters()" style="cursor:pointer; width:16px; height:16px">
+      <span>${w.icon} ${w.label}</span>
+    </label>
+  `).join('');
+
+  renderRecords();
+}
+
+function applyRecordsFilters() {
+  renderRecords();
+}
+
+function clearRecordsFilters() {
+  document.getElementById('records-filter-company').value = '';
+  document.getElementById('records-filter-contractor').value = '';
+  document.getElementById('records-filter-from-date').value = '';
+  document.getElementById('records-filter-to-date').value = '';
+  document.querySelectorAll('#records-filter-workers input[type="checkbox"]').forEach(cb => cb.checked = false);
+  renderRecords();
 }
 
 function deleteReport(i) { if (confirm('Delete this record?')) { reports.splice(i, 1); localStorage.setItem('sitelog_v2', JSON.stringify(reports)); renderRecords(); showToast('Deleted'); } }

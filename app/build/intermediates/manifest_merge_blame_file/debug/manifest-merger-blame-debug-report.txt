@@ -24,7 +24,7 @@
 17-->[androidx.core:core:1.12.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\75190d9fe485ede1f891a75fa9a2c01b\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
 18
 19    <application
-19-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:6:5-22:19
+19-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:6:5-32:19
 20        android:allowBackup="true"
 20-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:7:9-35
 21        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
@@ -39,49 +39,67 @@
 26-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:10:9-54
 27        android:supportsRtl="true"
 27-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:11:9-35
-28        android:theme="@style/Theme.AppCompat.Light.NoActionBar" >
-28-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:12:9-65
-29        <activity
-29-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:13:9-21:20
-30            android:name="com.sitelog.labourapp.MainActivity"
-30-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:14:13-41
-31            android:configChanges="orientation|screenSize"
-31-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:16:13-59
-32            android:exported="true" >
-32-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:15:13-36
-33            <intent-filter>
-33-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:17:13-20:29
-34                <action android:name="android.intent.action.MAIN" />
-34-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:18:17-69
-34-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:18:25-66
-35
-36                <category android:name="android.intent.category.LAUNCHER" />
-36-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:19:17-77
-36-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:19:27-74
-37            </intent-filter>
-38        </activity>
-39
-40        <provider
-40-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
-41            android:name="androidx.startup.InitializationProvider"
-41-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:25:13-67
-42            android:authorities="com.sitelog.labourapp.androidx-startup"
-42-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:26:13-68
-43            android:exported="false" >
-43-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:27:13-37
-44            <meta-data
-44-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
-45                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-45-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:30:17-75
-46                android:value="androidx.startup" />
-46-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:31:17-49
-47            <meta-data
-47-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\supri\.gradle\caches\8.10.2\transforms\a51c3308199683815af50a1868ee4d14\transformed\jetified-lifecycle-process-2.4.1\AndroidManifest.xml:31:13-33:52
-48                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-48-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\supri\.gradle\caches\8.10.2\transforms\a51c3308199683815af50a1868ee4d14\transformed\jetified-lifecycle-process-2.4.1\AndroidManifest.xml:32:17-78
-49                android:value="androidx.startup" />
-49-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\supri\.gradle\caches\8.10.2\transforms\a51c3308199683815af50a1868ee4d14\transformed\jetified-lifecycle-process-2.4.1\AndroidManifest.xml:33:17-49
-50        </provider>
-51    </application>
-52
-53</manifest>
+28        android:testOnly="true"
+29        android:theme="@style/Theme.AppCompat.Light.NoActionBar" >
+29-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:12:9-65
+30        <activity
+30-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:13:9-21:20
+31            android:name="com.sitelog.labourapp.MainActivity"
+31-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:14:13-41
+32            android:configChanges="orientation|screenSize"
+32-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:16:13-59
+33            android:exported="true" >
+33-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:15:13-36
+34            <intent-filter>
+34-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:17:13-20:29
+35                <action android:name="android.intent.action.MAIN" />
+35-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:18:17-69
+35-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:18:25-66
+36
+37                <category android:name="android.intent.category.LAUNCHER" />
+37-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:19:17-77
+37-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:19:27-74
+38            </intent-filter>
+39        </activity>
+40
+41        <provider
+41-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:23:9-31:20
+42            android:name="androidx.core.content.FileProvider"
+42-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:24:13-62
+43            android:authorities="com.sitelog.labourapp.fileprovider"
+43-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:25:13-69
+44            android:exported="false"
+44-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:26:13-37
+45            android:grantUriPermissions="true" >
+45-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:27:13-47
+46            <meta-data
+46-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:28:13-30:54
+47                android:name="android.support.FILE_PROVIDER_PATHS"
+47-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:29:17-67
+48                android:resource="@xml/file_paths" />
+48-->C:\Users\supri\StudioProjects\sitelog-labour-app\app\src\main\AndroidManifest.xml:30:17-51
+49        </provider>
+50        <provider
+50-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+51            android:name="androidx.startup.InitializationProvider"
+51-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:25:13-67
+52            android:authorities="com.sitelog.labourapp.androidx-startup"
+52-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:26:13-68
+53            android:exported="false" >
+53-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:27:13-37
+54            <meta-data
+54-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+55                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+55-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:30:17-75
+56                android:value="androidx.startup" />
+56-->[androidx.emoji2:emoji2:1.2.0] C:\Users\supri\.gradle\caches\8.10.2\transforms\5227b409057626009cd0809a181db16d\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:31:17-49
+57            <meta-data
+57-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\supri\.gradle\caches\8.10.2\transforms\a51c3308199683815af50a1868ee4d14\transformed\jetified-lifecycle-process-2.4.1\AndroidManifest.xml:31:13-33:52
+58                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+58-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\supri\.gradle\caches\8.10.2\transforms\a51c3308199683815af50a1868ee4d14\transformed\jetified-lifecycle-process-2.4.1\AndroidManifest.xml:32:17-78
+59                android:value="androidx.startup" />
+59-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\supri\.gradle\caches\8.10.2\transforms\a51c3308199683815af50a1868ee4d14\transformed\jetified-lifecycle-process-2.4.1\AndroidManifest.xml:33:17-49
+60        </provider>
+61    </application>
+62
+63</manifest>
